@@ -1,0 +1,98 @@
+psql:01_operational_schema.sql:10: NOTICE:  extension "postgis" already exists, skipping
+CREATE EXTENSION
+psql:01_operational_schema.sql:13: NOTICE:  drop cascades to 24 other objects
+DETAIL:  drop cascades to table operational.district
+drop cascades to table operational.municipality
+drop cascades to table operational.parish
+drop cascades to table operational.election_type
+drop cascades to table operational.election
+drop cascades to table operational.electoral_organ
+drop cascades to table operational.party
+drop cascades to table operational.coalition
+drop cascades to table operational.coalition_member
+drop cascades to table operational.turnout
+drop cascades to table operational.party_municipality_summary
+drop cascades to table operational.audit_log
+drop cascades to function operational.calculate_vote_percentage(integer)
+drop cascades to function operational.get_party_performance_in_municipality(integer,integer,character varying)
+drop cascades to function operational.get_top_parties(integer,integer,integer,integer)
+drop cascades to function operational.allocate_seats_dhondt(integer,integer,integer,integer)
+drop cascades to function operational.refresh_party_municipality_summary(integer)
+drop cascades to function operational.calculate_turnout_percentages()
+drop cascades to function operational.trg_calculate_turnout()
+drop cascades to function operational.trg_calculate_vote_percentage()
+drop cascades to function operational.trg_audit_log()
+drop cascades to function operational.get_or_create_party(character varying,character varying)
+drop cascades to view operational.analytical_query_3_turnout_analysis
+drop cascades to function operational.demonstrate_dhondt(character varying,integer)
+DROP SCHEMA
+CREATE SCHEMA
+SET
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+COMMENT
+COMMENT
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+COMMENT
+COMMENT
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+COMMENT
+COMMENT
+CREATE TABLE
+INSERT 0 4
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+COMMENT
+CREATE TABLE
+INSERT 0 3
+COMMENT
+CREATE TABLE
+CREATE INDEX
+COMMENT
+CREATE TABLE
+CREATE INDEX
+COMMENT
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+COMMENT
+psql:01_operational_schema.sql:203: ERROR:  cannot use subquery in check constraint
+LINE 28:         (organ_id IN (SELECT organ_id FROM electoral_organ W...
+                           ^
+psql:01_operational_schema.sql:205: ERROR:  relation "candidacy" does not exist
+psql:01_operational_schema.sql:206: ERROR:  relation "candidacy" does not exist
+psql:01_operational_schema.sql:207: ERROR:  relation "candidacy" does not exist
+psql:01_operational_schema.sql:208: ERROR:  relation "candidacy" does not exist
+psql:01_operational_schema.sql:209: ERROR:  relation "candidacy" does not exist
+psql:01_operational_schema.sql:211: ERROR:  relation "candidacy" does not exist
+psql:01_operational_schema.sql:232: ERROR:  relation "candidacy" does not exist
+psql:01_operational_schema.sql:234: ERROR:  relation "vote_result" does not exist
+psql:01_operational_schema.sql:235: ERROR:  relation "vote_result" does not exist
+psql:01_operational_schema.sql:237: ERROR:  relation "vote_result" does not exist
+psql:01_operational_schema.sql:252: ERROR:  relation "candidacy" does not exist
+psql:01_operational_schema.sql:254: ERROR:  relation "seat_result" does not exist
+psql:01_operational_schema.sql:256: ERROR:  relation "seat_result" does not exist
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+COMMENT
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+COMMENT
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+COMMENT
+INSERT 0 1
+COMMENT

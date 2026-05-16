@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}Districts - Election Analytics{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Page Header -->
+    <div class="hero-section">
+        <div class="container">
+            <h1>Portuguese Districts</h1>
+            <p class="lead">Browse election results by district</p>
+        </div>
+    </div>
+    
+    <!-- Districts Grid -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h2 class="mb-3">All Districts ({{ districts|length }})</h2>
+        </div>
+        
+        {% for district in districts %}
+        <div class="col-md-4 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">{{ district.district_name }}</h5>
+                    <p class="card-text">
+                        <strong>Municipalities:</strong> {{ district.municipalities_count or 0 }}<br>
+                        <strong>Avg Turnout:</strong> 
+                        {% if district.avg_turnout %}
+                            {{ "%.2f"|format(district.avg_turnout) }}%
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </p>
+                    <a href="/district/{{ district.district_id }}" class="btn btn-primary">View Details</a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <!-- Summary Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Turnout Comparison</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="districtTurnoutChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Create bar chart comparing district turnouts
+    const districts = {{ districts | tojson }};
+    
+    const ctx = document.getElementById('districtTurnoutChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: districts.map(d => d.district_name),
+            datasets: [{
+                label: 'Average Turnout (%)',
+                data: districts.map(d => d.avg_turnout || 0),
+                backgroundColor: 'rgba(52, 152, 219, 0.7)',
+                borderColor: 'rgba(52, 152, 219, 1)',
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    ticks: {
+                        callback: function(value) {
+                            return value + '%';
+                        }
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

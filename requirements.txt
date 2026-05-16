@@ -1,0 +1,39 @@
+# Election Analytics Platform - Python Dependencies
+# Advanced Topics in Databases - Practical Assignment
+
+# Core Database
+psycopg2-binary==2.9.9  # PostgreSQL adapter for Python
+psycopg2==2.9.9         # PostgreSQL adapter (source version)
+
+# Web Framework
+Flask==3.0.0            # Web framework
+Flask-Cors==4.0.0       # CORS support for API endpoints
+
+# Data Processing
+pandas==2.1.4           # Data manipulation and analysis
+numpy==1.26.2           # Numerical computing
+
+# Geographic Data
+Shapely==2.0.2          # Geometric operations
+GeoJSON==3.1.0          # GeoJSON handling
+pyproj==3.6.1           # Cartographic projections
+
+# Utilities
+python-dotenv==1.0.0    # Environment variable management
+requests==2.31.0        # HTTP library for downloading data
+
+# Visualization (optional for advanced features)
+matplotlib==3.8.2       # Plotting library
+plotly==5.18.0          # Interactive plots
+
+# Development & Testing
+pytest==7.4.3           # Testing framework
+pytest-cov==4.1.0       # Coverage reporting
+black==23.12.1          # Code formatting
+flake8==7.0.0           # Linting
+
+# Documentation
+Sphinx==7.2.6           # Documentation generator
+
+# Production Server (optional)
+gunicorn==21.2.0        # WSGI HTTP server

@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.Python
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+
+# Database
+*.db
+*.sqlite
+
+# Data files (too large for Git)
+data/downloads/*
+data/extracted/*
+data/processed/*
+data/logs/*.log
+!data/downloads/.gitkeep
+!data/extracted/.gitkeep
+!data/processed/.gitkeep
+
+# IDE
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Environment
+.env
+config_local.py
+
+# OS
+Thumbs.db

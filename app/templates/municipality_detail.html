@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+
+{% block title %}{{ municipality.municipality_name }} - Election Results{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Home</a></li>
+            <li class="breadcrumb-item"><a href="/districts">Districts</a></li>
+            <li class="breadcrumb-item">{{ municipality.district_name }}</li>
+            <li class="breadcrumb-item active">{{ municipality.municipality_name }}</li>
+        </ol>
+    </nav>
+    
+    <!-- Municipality Header -->
+    <div class="hero-section">
+        <div class="container">
+            <h1>{{ municipality.municipality_name }}</h1>
+            <p class="lead">{{ municipality.district_name }} District</p>
+            <p>Local Elections 2021 - Câmara Municipal</p>
+        </div>
+    </div>
+    
+    <!-- Turnout Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stat-card text-center">
+                <div class="stat-number">{{ "{:,}".format(municipality.registered_voters or 0) }}</div>
+                <div class="stat-label">Registered Voters</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card text-center">
+                <div class="stat-number">{{ "{:,}".format(municipality.votes_cast or 0) }}</div>
+                <div class="stat-label">Votes Cast</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card text-center">
+                <div class="stat-number">{{ "%.1f"|format(municipality.turnout_percentage or 0) }}%</div>
+                <div class="stat-label">Turnout</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card text-center">
+                <div class="stat-number">{{ "%.1f"|format(municipality.blank_percentage or 0) }}%</div>
+                <div class="stat-label">Blank Votes</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Election Results -->
+    <div class="row">
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Election Results Table</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Party</th>
+                                <th class="text-end">Votes</th>
+                                <th class="text-end">%</th>
+                                <th class="text-end">Seats</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for result in results %}
+                            <tr class="{% if result.is_winner %}table-success{% endif %}">
+                                <td>{{ result.ranking_position }}</td>
+                                <td>
+                                    <strong>{{ result.party }}</strong>
+                                    {% if result.is_winner %}
+                                    <span class="winner-badge">WINNER</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">{{ "{:,}".format(result.votes_obtained) }}</td>
+                                <td class="text-end">{{ "%.2f"|format(result.vote_percentage) }}%</td>
+                                <td class="text-end">{{ result.seats }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Vote Distribution Chart</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="voteChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Visual Results Bar Chart -->
+    <div class="row">
+        <div class="col-md-12 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Vote Comparison</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="barChart" height="80"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Party Performance Bars -->
+    <div class="row">
+        <div class="col-md-12 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Detailed Results</h5>
+                </div>
+                <div class="card-body">
+                    {% for result in results %}
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span><strong>{{ result.party }}</strong> - {{ result.party_full_name }}</span>
+                            <span>{{ "{:,}".format(result.votes_obtained) }} votes ({{ "%.2f"|format(result.vote_percentage) }}%)</span>
+                        </div>
+                        <div class="progress" style="height: 30px;">
+                            <div class="progress-bar" 
+                                 role="progressbar" 
+                                 style="width: {{ result.vote_percentage }}%; background-color: {{ party_colors[loop.index0 % 10] if party_colors else '#3498db' }};"
+                                 aria-valuenow="{{ result.vote_percentage }}" 
+                                 aria-valuemin="0" 
+                                 aria-valuemax="100">
+                                {{ result.seats }} seat{% if result.seats != 1 %}s{% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Prepare data from template
+    const results = {{ results | tojson }};
+    
+    // Party colors (simplified - would map to actual party colors)
+    const partyColors = [
+        '#E91E63', '#2196F3', '#4CAF50', '#FF9800', '#9C27B0',
+        '#00BCD4', '#FFEB3B', '#795548', '#607D8B', '#3F51B5'
+    ];
+    
+    // Pie Chart for vote distribution
+    const voteCtx = document.getElementById('voteChart').getContext('2d');
+    new Chart(voteCtx, {
+        type: 'pie',
+        data: {
+            labels: results.map(r => r.party),
+            datasets: [{
+                data: results.map(r => r.votes_obtained),
+                backgroundColor: partyColors.slice(0, results.length)
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.parsed || 0;
+                            const percentage = results[context.dataIndex].vote_percentage;
+                            return `${label}: ${value.toLocaleString()} votes (${percentage.toFixed(2)}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+    
+    // Bar Chart for comparison
+    const barCtx = document.getElementById('barChart').getContext('2d');
+    new Chart(barCtx, {
+        type: 'bar',
+        data: {
+            labels: results.map(r => r.party),
+            datasets: [{
+                label: 'Votes',
+                data: results.map(r => r.votes_obtained),
+                backgroundColor: partyColors.slice(0, results.length),
+                borderColor: partyColors.slice(0, results.length).map(c => c.replace('0.6', '1')),
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return value.toLocaleString();
+                        }
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const value = context.parsed.y;
+                            const index = context.dataIndex;
+                            const percentage = results[index].vote_percentage;
+                            return `${value.toLocaleString()} votes (${percentage.toFixed(2)}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

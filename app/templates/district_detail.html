@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+
+{% block title %}{{ district.district_name }} - Election Results{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Home</a></li>
+            <li class="breadcrumb-item"><a href="/districts">Districts</a></li>
+            <li class="breadcrumb-item active">{{ district.district_name }}</li>
+        </ol>
+    </nav>
+    
+    <!-- District Header -->
+    <div class="hero-section">
+        <div class="container">
+            <h1>{{ district.district_name }}</h1>
+            <p class="lead">District Code: {{ district.district_code }}</p>
+            <p>Local Elections 2021 Results</p>
+        </div>
+    </div>
+    
+    <!-- Top Parties in District -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h2 class="mb-3">Top Parties in District</h2>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Party Performance</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Party</th>
+                                <th class="text-end">Total Votes</th>
+                                <th class="text-end">Avg %</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for party in parties %}
+                            <tr>
+                                <td><strong>{{ party.party }}</strong></td>
+                                <td class="text-end">{{ "{:,}".format(party.total_votes) }}</td>
+                                <td class="text-end">{{ "%.2f"|format(party.avg_percentage) }}%</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Vote Distribution</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="partyPieChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Municipalities Map -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h2 class="mb-3">Municipalities in {{ district.district_name }}</h2>
+            <div id="municipalitiesMap" style="height: 400px; border-radius: 8px;"></div>
+        </div>
+    </div>
+    
+    <!-- Municipalities List -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Municipality Results</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Municipality</th>
+                                <th class="text-end">Registered Voters</th>
+                                <th class="text-end">Votes Cast</th>
+                                <th class="text-end">Turnout %</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for muni in municipalities %}
+                            <tr>
+                                <td><strong>{{ muni.municipality_name }}</strong></td>
+                                <td class="text-end">{{ "{:,}".format(muni.registered_voters or 0) }}</td>
+                                <td class="text-end">{{ "{:,}".format(muni.votes_cast or 0) }}</td>
+                                <td class="text-end">
+                                    {% if muni.turnout_percentage %}
+                                        {{ "%.2f"|format(muni.turnout_percentage) }}%
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <a href="/municipality/{{ muni.municipality_id }}" class="btn btn-sm btn-primary">Details</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Party colors
+    const partyColors = [
+        '#E91E63', '#2196F3', '#4CAF50', '#FF9800', '#9C27B0',
+        '#00BCD4', '#FFEB3B', '#795548', '#607D8B', '#3F51B5'
+    ];
+    
+    // Pie chart for party distribution
+    const parties = {{ parties | tojson }};
+    
+    const pieCtx = document.getElementById('partyPieChart').getContext('2d');
+    new Chart(pieCtx, {
+        type: 'pie',
+        data: {
+            labels: parties.map(p => p.party),
+            datasets: [{
+                data: parties.map(p => p.total_votes),
+                backgroundColor: partyColors.slice(0, parties.length)
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+    
+    // Initialize municipalities map
+    const districtId = {{ district.district_id }};
+    const map = L.map('municipalitiesMap').setView([39.5, -8.0], 8);
+    
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 18
+    }).addTo(map);
+    
+    // Load municipalities for this district
+    fetch(`/api/map/municipalities/${districtId}`)
+        .then(response => response.json())
+        .then(data => {
+            const geoJsonLayer = L.geoJSON(data, {
+                style: function(feature) {
+                    const turnout = feature.properties.turnout || 0;
+                    return {
+                        fillColor: getTurnoutColor(turnout),
+                        weight: 2,
+                        opacity: 1,
+                        color: 'white',
+                        fillOpacity: 0.7
+                    };
+                },
+                onEachFeature: function(feature, layer) {
+                    const props = feature.properties;
+                    const popupContent = `
+                        <strong>${props.name}</strong><br>
+                        Turnout: ${props.turnout ? props.turnout.toFixed(2) : 'N/A'}%<br>
+                        Winner: ${props.winner || 'N/A'}<br>
+                        <a href="/municipality/${feature.id}">View Details</a>
+                    `;
+                    layer.bindPopup(popupContent);
+                    
+                    layer.on('click', function() {
+                        window.location.href = '/municipality/' + feature.id;
+                    });
+                }
+            }).addTo(map);
+            
+            // Fit map to municipality bounds
+            if (data.features && data.features.length > 0) {
+                map.fitBounds(geoJsonLayer.getBounds());
+            }
+        })
+        .catch(error => console.error('Error loading municipalities:', error));
+    
+    function getTurnoutColor(turnout) {
+        return turnout > 60 ? '#1a9850' :
+               turnout > 55 ? '#91cf60' :
+               turnout > 50 ? '#d9ef8b' :
+               turnout > 45 ? '#fee08b' :
+               turnout > 40 ? '#fc8d59' :
+                              '#d73027';
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,321 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics Dashboard - Election Analytics{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Page Header -->
+    <div class="hero-section">
+        <div class="container">
+            <h1>📊 Analytics Dashboard</h1>
+            <p class="lead">Comprehensive election data analysis and visualizations</p>
+        </div>
+    </div>
+    
+    <!-- National Party Comparison -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h2 class="mb-3">National Party Performance</h2>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Total Votes by Party</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="votesBarChart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Seats Won by Party</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="seatsBarChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Vote Share Pie Chart -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>National Vote Share</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="voteSharePie"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Votes vs Seats (Proportionality)</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="proportionalityChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Advanced Analytics Queries -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h2 class="mb-3">Advanced SQL Analytics</h2>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Window Functions</h5>
+                    <p class="card-text">Rankings, running totals, and percentiles</p>
+                    <a href="#" class="btn btn-primary" onclick="runWindowQuery(); return false;">Run Query</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5 class="card-title">GROUP BY ROLLUP</h5>
+                    <p class="card-text">Hierarchical aggregation by territory</p>
+                    <a href="#" class="btn btn-primary" onclick="runRollupQuery(); return false;">Run Query</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5 class="card-title">GROUP BY CUBE</h5>
+                    <p class="card-text">Multi-dimensional analysis</p>
+                    <a href="#" class="btn btn-primary" onclick="runCubeQuery(); return false;">Run Query</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Query Results Display -->
+    <div class="row mb-4" id="queryResults" style="display: none;">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 id="queryTitle">Query Results</h5>
+                </div>
+                <div class="card-body">
+                    <div id="queryContent" style="max-height: 400px; overflow-y: auto;">
+                        <!-- Results will be inserted here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Data Insights -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h2 class="mb-3">Key Insights</h2>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">🎯 Highest Turnout</h5>
+                    <p class="card-text">
+                        Analysis of municipalities with highest voter participation and common characteristics.
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">📍 Geographic Patterns</h5>
+                    <p class="card-text">
+                        Regional voting patterns and party strongholds across Portuguese districts.
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">⚖️ Proportionality</h5>
+                    <p class="card-text">
+                        D'Hondt method impact: comparison of vote share vs. seat allocation.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Fetch party comparison data
+    fetch('/api/charts/party_comparison')
+        .then(response => response.json())
+        .then(data => {
+            createCharts(data);
+        })
+        .catch(error => console.error('Error loading chart data:', error));
+    
+    function createCharts(data) {
+        const partyColors = [
+            '#E91E63', '#2196F3', '#4CAF50', '#FF9800', '#9C27B0',
+            '#00BCD4', '#FFEB3B', '#795548', '#607D8B', '#3F51B5'
+        ];
+        
+        // Votes bar chart
+        const votesCtx = document.getElementById('votesBarChart').getContext('2d');
+        new Chart(votesCtx, {
+            type: 'bar',
+            data: {
+                labels: data.parties,
+                datasets: [{
+                    label: 'Total Votes',
+                    data: data.votes,
+                    backgroundColor: partyColors.slice(0, data.parties.length)
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return value.toLocaleString();
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+        
+        // Seats bar chart
+        const seatsCtx = document.getElementById('seatsBarChart').getContext('2d');
+        new Chart(seatsCtx, {
+            type: 'bar',
+            data: {
+                labels: data.parties,
+                datasets: [{
+                    label: 'Total Seats',
+                    data: data.seats,
+                    backgroundColor: partyColors.slice(0, data.parties.length)
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: { beginAtZero: true }
+                },
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+        
+        // Vote share pie
+        const pieCtx = document.getElementById('voteSharePie').getContext('2d');
+        new Chart(pieCtx, {
+            type: 'pie',
+            data: {
+                labels: data.parties,
+                datasets: [{
+                    data: data.votes,
+                    backgroundColor: partyColors.slice(0, data.parties.length)
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+        
+        // Proportionality comparison (votes vs seats)
+        const propCtx = document.getElementById('proportionalityChart').getContext('2d');
+        new Chart(propCtx, {
+            type: 'bar',
+            data: {
+                labels: data.parties,
+                datasets: [
+                    {
+                        label: 'Vote %',
+                        data: data.percentages,
+                        backgroundColor: 'rgba(52, 152, 219, 0.7)'
+                    },
+                    {
+                        label: 'Seat %',
+                        data: data.seats.map((s, i) => {
+                            const totalSeats = data.seats.reduce((a, b) => a + b, 0);
+                            return totalSeats > 0 ? (s / totalSeats * 100).toFixed(2) : 0;
+                        }),
+                        backgroundColor: 'rgba(231, 76, 60, 0.7)'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    // Query execution functions
+    function runWindowQuery() {
+        showQueryResults('Window Functions - Party Rankings', 
+            'Demonstrating ROW_NUMBER(), RANK(), SUM() OVER, PERCENT_RANK()...');
+        // In a real implementation, this would fetch from an API endpoint
+    }
+    
+    function runRollupQuery() {
+        showQueryResults('GROUP BY ROLLUP - Hierarchical Aggregation', 
+            'District → Municipality → Party aggregation with subtotals...');
+    }
+    
+    function runCubeQuery() {
+        showQueryResults('GROUP BY CUBE - Multi-dimensional Analysis', 
+            'All combinations of District × Party × Organ...');
+    }
+    
+    function showQueryResults(title, content) {
+        document.getElementById('queryTitle').textContent = title;
+        document.getElementById('queryContent').innerHTML = `
+            <div class="alert alert-info">
+                <strong>Query Executed:</strong><br>
+                ${content}<br><br>
+                <em>In production, this would display actual query results from the database.</em>
+            </div>
+        `;
+        document.getElementById('queryResults').style.display = 'block';
+        document.getElementById('queryResults').scrollIntoView({ behavior: 'smooth' });
+    }
+</script>
+{% endblock %}
