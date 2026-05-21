@@ -7,9 +7,9 @@
 **Instructor**: Prof. Michel Ferreira  
 
 **Group Members**:
-- [Student 1 Name] - [Student Number] - [Contribution %]
-- [Student 2 Name] - [Student Number] - [Contribution %]
-- [Student 3 Name] - [Student Number] - [Contribution %]
+- Amos Ehiomone Uwamusi - up202502075 
+- Sérgio Teixeira Cardoso - up202107918 
+- Kathleen Soares da Silva - [Student Number] 
 
 **Date**: June 2026
 
@@ -145,7 +145,6 @@ The warehouse uses a **star schema** design optimized for OLAP queries and busin
 
 ### 3.2 Star Schema Diagram
 
-[INSERT STAR SCHEMA DIAGRAM HERE]
 
 ### 3.3 Dimension Tables
 
