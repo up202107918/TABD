@@ -95,6 +95,7 @@ election_analytics_platform/
    psql election_analytics < sql/03_functions_triggers.sql
    psql election_analytics < sql/04_analytical_queries.sql
    psql election_analytics < sql/05_staging_schema.sql
+   psql election_analytics < sql/06_sample_data.sql
    ```
 
 6. **Run ETL pipeline**
