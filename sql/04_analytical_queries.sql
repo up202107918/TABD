@@ -39,7 +39,7 @@ SELECT
     ) as pct_of_municipality_votes,
     
     -- Percentile ranking
-    ROUND(PERCENT_RANK() OVER (PARTITION BY c.municipality_id ORDER BY vr.votes_obtained) * 100, 2) as percentile_rank
+    ROUND((PERCENT_RANK() OVER (PARTITION BY c.municipality_id ORDER BY vr.votes_obtained) * 100)::NUMERIC, 2) as percentile_rank
     
 FROM candidacy c
 JOIN municipality m ON c.municipality_id = m.municipality_id
