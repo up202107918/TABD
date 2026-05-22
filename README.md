@@ -370,6 +370,7 @@ app.run(debug=True, host='0.0.0.0', port=5000)
 
 -  Amos Ehiomone Uwamusi
 -  Sérgio Teixeira Cardoso
+-  Kamil Tasarz
 
 
 **Example:**
