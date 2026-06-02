@@ -85,3 +85,7 @@ def get_dataset_dirs() -> List[str]:
     """Get dataset directories and refresh discovery if needed."""
     return _discover_dataset_dirs(DATA_DIR)
 
+def get_dataset_dirs() -> List[str]:
+    """Get dataset directories and refresh discovery if needed."""
+    return _discover_dataset_dirs(DATA_DIR)
+
