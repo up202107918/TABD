@@ -33,6 +33,7 @@ BEGIN
     JOIN turnout t ON (
         t.election_id = c.election_id AND
         t.organ_id = c.organ_id AND
+        COALESCE(t.district_id, -1) = COALESCE(c.district_id, -1) AND
         COALESCE(t.municipality_id, -1) = COALESCE(c.municipality_id, -1) AND
         COALESCE(t.parish_id, -1) = COALESCE(c.parish_id, -1)
     )
@@ -184,6 +185,7 @@ LEFT JOIN vote_result vr ON c.candidacy_id = vr.candidacy_id
 LEFT JOIN turnout t ON (
     t.election_id = c.election_id AND 
     t.organ_id = c.organ_id AND 
+    COALESCE(t.district_id, -1) = COALESCE(c.district_id, -1) AND
     t.municipality_id = c.municipality_id
 )
 GROUP BY e.election_year, m.municipality_name, d.district_name, eo.organ_name,
@@ -423,6 +425,7 @@ BEGIN
     JOIN turnout t ON (
         t.election_id = c.election_id AND
         t.organ_id = c.organ_id AND
+        COALESCE(t.district_id, -1) = COALESCE(c.district_id, -1) AND
         COALESCE(t.municipality_id, -1) = COALESCE(c.municipality_id, -1) AND
         COALESCE(t.parish_id, -1) = COALESCE(c.parish_id, -1)
     )

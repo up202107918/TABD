@@ -12,7 +12,7 @@ CREATE SCHEMA staging;
 SET search_path TO staging, public;
 
 -- ============================================================================
--- STAGING TABLES (Raw data as extracted from CSV files)
+-- STAGING TABLES (Raw data as extracted from official Excel workbooks)
 -- ============================================================================
 
 -- Staging table for raw election results
@@ -34,6 +34,9 @@ CREATE TABLE stg_election_results (
     
     -- ETL metadata
     source_file VARCHAR(500),
+    election_year INTEGER GENERATED ALWAYS AS (
+        NULLIF(substring(source_file FROM '(20[0-9]{2})'), '')::INTEGER
+    ) STORED,
     loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     processed BOOLEAN DEFAULT false,
     error_message TEXT
@@ -42,8 +45,9 @@ CREATE TABLE stg_election_results (
 CREATE INDEX idx_stg_results_distrito ON stg_election_results(distrito);
 CREATE INDEX idx_stg_results_concelho ON stg_election_results(concelho);
 CREATE INDEX idx_stg_results_processed ON stg_election_results(processed);
+CREATE INDEX idx_stg_results_election_year ON stg_election_results(election_year);
 
-COMMENT ON TABLE stg_election_results IS 'Staging table for raw election results from CSV';
+COMMENT ON TABLE stg_election_results IS 'Staging table for raw election results from extracted Excel workbooks';
 
 -- Staging table for turnout data
 CREATE TABLE stg_turnout_data (
@@ -60,6 +64,9 @@ CREATE TABLE stg_turnout_data (
     
     -- ETL metadata
     source_file VARCHAR(500),
+    election_year INTEGER GENERATED ALWAYS AS (
+        NULLIF(substring(source_file FROM '(20[0-9]{2})'), '')::INTEGER
+    ) STORED,
     loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     processed BOOLEAN DEFAULT false,
     error_message TEXT
@@ -68,8 +75,9 @@ CREATE TABLE stg_turnout_data (
 CREATE INDEX idx_stg_turnout_distrito ON stg_turnout_data(distrito);
 CREATE INDEX idx_stg_turnout_concelho ON stg_turnout_data(concelho);
 CREATE INDEX idx_stg_turnout_processed ON stg_turnout_data(processed);
+CREATE INDEX idx_stg_turnout_election_year ON stg_turnout_data(election_year);
 
-COMMENT ON TABLE stg_turnout_data IS 'Staging table for turnout/participation data';
+COMMENT ON TABLE stg_turnout_data IS 'Staging table for turnout/participation data from extracted Excel workbooks';
 
 -- Staging table for geographic boundaries (before loading into PostGIS)
 CREATE TABLE stg_geographic_boundaries (

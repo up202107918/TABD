@@ -3,7 +3,7 @@
 -- Advanced Topics in Databases - Practical Assignment
 -- ============================================================================
 -- This schema represents the normalized operational database for Portuguese
--- election data, focusing on Autárquicas 2021 (Local Elections)
+-- election data across multiple autárquicas election years.
 -- ============================================================================
 
 -- Enable PostGIS extension for spatial data
@@ -95,13 +95,14 @@ CREATE TABLE election (
     description VARCHAR(200),
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(election_type_id, election_date)
+    UNIQUE(election_type_id, election_date),
+    UNIQUE(election_type_id, election_year)
 );
 
 CREATE INDEX idx_election_date ON election(election_date);
 CREATE INDEX idx_election_year ON election(election_year);
 
-COMMENT ON TABLE election IS 'Specific election events (e.g., Autárquicas 2021)';
+COMMENT ON TABLE election IS 'Specific election events (e.g., Autárquicas 2013, 2017, 2021, 2025)';
 
 -- Electoral Organs/Offices (e.g., Câmara Municipal, Assembleia Municipal, Junta de Freguesia)
 CREATE TABLE electoral_organ (
@@ -140,13 +141,15 @@ COMMENT ON TABLE party IS 'Political parties participating in elections';
 -- Coalitions (when multiple parties run together)
 CREATE TABLE coalition (
     coalition_id SERIAL PRIMARY KEY,
-    coalition_acronym VARCHAR(50) UNIQUE NOT NULL,
+    coalition_acronym VARCHAR(50) NOT NULL,
     coalition_name VARCHAR(200),
     election_id INTEGER REFERENCES election(election_id),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX idx_coalition_election ON coalition(election_id);
+CREATE UNIQUE INDEX uq_coalition_election_acronym
+    ON coalition (COALESCE(election_id, -1), coalition_acronym);
 
 COMMENT ON TABLE coalition IS 'Electoral coalitions formed by multiple parties';
 
@@ -203,6 +206,16 @@ CREATE INDEX idx_candidacy_organ ON candidacy(organ_id);
 CREATE INDEX idx_candidacy_municipality ON candidacy(municipality_id);
 CREATE INDEX idx_candidacy_party ON candidacy(party_id);
 CREATE INDEX idx_candidacy_coalition ON candidacy(coalition_id);
+CREATE UNIQUE INDEX uq_candidacy_scope_entity
+    ON candidacy (
+        election_id,
+        organ_id,
+        COALESCE(district_id, -1),
+        COALESCE(municipality_id, -1),
+        COALESCE(parish_id, -1),
+        COALESCE(party_id, -1),
+        COALESCE(coalition_id, -1)
+    );
 
 COMMENT ON TABLE candidacy IS 'Specific candidacies: party/coalition running for organ in territory';
 
@@ -278,14 +291,20 @@ CREATE TABLE turnout (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     
     CHECK (votes_cast <= registered_voters),
-    CHECK (valid_votes + blank_votes + null_votes = votes_cast),
-    
-    UNIQUE(election_id, organ_id, district_id, municipality_id, parish_id)
+    CHECK (valid_votes + blank_votes + null_votes = votes_cast)
 );
 
 CREATE INDEX idx_turnout_election ON turnout(election_id);
 CREATE INDEX idx_turnout_municipality ON turnout(municipality_id);
 CREATE INDEX idx_turnout_percentage ON turnout(turnout_percentage);
+CREATE UNIQUE INDEX uq_turnout_scope
+    ON turnout (
+        election_id,
+        organ_id,
+        COALESCE(district_id, -1),
+        COALESCE(municipality_id, -1),
+        COALESCE(parish_id, -1)
+    );
 
 COMMENT ON TABLE turnout IS 'Voter turnout statistics for each electoral contest';
 
@@ -339,14 +358,8 @@ COMMENT ON TABLE audit_log IS 'Audit trail for data changes';
 -- INITIAL DATA SETUP
 -- ============================================================================
 
--- Add 2021 Local Elections
-INSERT INTO election (election_type_id, election_date, election_year, description)
-VALUES (
-    (SELECT election_type_id FROM election_type WHERE type_code = 'AUT'),
-    '2021-09-26',
-    2021,
-    'Eleições Autárquicas 2021'
-);
+-- Specific election rows are intentionally loaded by the ETL, based on the
+-- extracted official workbooks available in TABD/etl/data.
 
 -- ============================================================================
 -- GRANT PERMISSIONS (adjust based on your setup)

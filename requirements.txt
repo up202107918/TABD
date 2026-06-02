@@ -12,6 +12,9 @@ Flask-Cors==4.0.0       # CORS support for API endpoints
 # Data Processing
 pandas==2.1.4           # Data manipulation and analysis
 numpy==1.26.2           # Numerical computing
+openpyxl==3.1.5         # Excel .xlsx reader for pandas.read_excel
+xlrd==2.0.1             # Excel .xls reader for pandas.read_excel
+odfpy==1.4.1            # OpenDocument .ods reader for pandas.read_excel
 
 # Geographic Data
 Shapely==2.0.2          # Geometric operations

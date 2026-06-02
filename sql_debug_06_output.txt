@@ -1,0 +1,105 @@
+createdb rc=0
+
+===== 01_operational_schema.sql rc=0 =====
+CREATE EXTENSION
+psql:/Users/sergiocardoso/Documents/TABD/sql/01_operational_schema.sql:13: NOTICE:  schema "operational" does not exist, skipping
+DROP SCHEMA
+CREATE SCHEMA
+SET
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+COMMENT
+COMMENT
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+COMMENT
+COMMENT
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+COMMENT
+COMMENT
+CREATE TABLE
+INSERT 0 4
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+COMMENT
+CREATE TABLE
+INSERT 0 3
+COMMENT
+CREATE TABLE
+CREATE INDEX
+COMMENT
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+COMMENT
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+COMMENT
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+COMMENT
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+COMMENT
+CREATE TABLE
+CREATE INDEX
+COMMENT
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+COMMENT
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+COMMENT
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+COMMENT
+COMMENT
+
+
+===== 06_sample_data.sql rc=0 =====
+SET
+ election_year | election_date | description | candidacies_loaded | vote_results_loaded | turnout_rows_loaded 
+---------------+---------------+-------------+--------------------+---------------------+---------------------
+(0 rows)
+
+psql:/Users/sergiocardoso/Documents/TABD/sql/06_sample_data.sql:48: NOTICE:  No elections are available yet. Load 01_operational_schema.sql first.
+DO
+   table_name    | row_count 
+-----------------+-----------
+ Parties         |         0
+ Districts       |         0
+ Municipalities  |         0
+ Candidacies     |         0
+ Vote Results    |         0
+ Seat Results    |         0
+ Turnout Records |         0
+(7 rows)
+
+ election_year | organ_code | district_name | municipality_name | party | candidate_name | votes_obtained | vote_percentage | seats_obtained 
+---------------+------------+---------------+-------------------+-------+----------------+----------------+-----------------+----------------
+(0 rows)
+
+ election_year | organ_code | district_name | municipality_name | registered_voters | votes_cast | valid_votes | blank_votes | null_votes | turnout_percentage 
+---------------+------------+---------------+-------------------+-------------------+------------+-------------+-------------+------------+--------------------
+(0 rows)
+

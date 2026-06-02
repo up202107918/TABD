@@ -15,18 +15,20 @@ SET search_path TO operational, warehouse, public;
 -- Uses: ROW_NUMBER(), RANK(), SUM() OVER, PERCENT_RANK()
 CREATE OR REPLACE VIEW analytical_query_1_party_rankings AS
 SELECT 
+    e.election_year,
+    eo.organ_code,
     m.municipality_name,
     d.district_name,
     COALESCE(p.party_acronym, co.coalition_acronym) as party,
     vr.votes_obtained,
     
     -- Ranking within municipality (handles ties)
-    ROW_NUMBER() OVER (PARTITION BY c.municipality_id ORDER BY vr.votes_obtained DESC) as row_rank,
-    RANK() OVER (PARTITION BY c.municipality_id ORDER BY vr.votes_obtained DESC) as tied_rank,
+    ROW_NUMBER() OVER (PARTITION BY c.election_id, c.organ_id, c.municipality_id ORDER BY vr.votes_obtained DESC) as row_rank,
+    RANK() OVER (PARTITION BY c.election_id, c.organ_id, c.municipality_id ORDER BY vr.votes_obtained DESC) as tied_rank,
     
     -- Running total of votes
     SUM(vr.votes_obtained) OVER (
-        PARTITION BY c.municipality_id 
+        PARTITION BY c.election_id, c.organ_id, c.municipality_id 
         ORDER BY vr.votes_obtained DESC
         ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
     ) as running_total,
@@ -34,21 +36,22 @@ SELECT
     -- Percentage of total votes in municipality
     ROUND(
         vr.votes_obtained::NUMERIC / 
-        SUM(vr.votes_obtained) OVER (PARTITION BY c.municipality_id) * 100, 
+        SUM(vr.votes_obtained) OVER (PARTITION BY c.election_id, c.organ_id, c.municipality_id) * 100, 
         2
     ) as pct_of_municipality_votes,
     
     -- Percentile ranking
-    ROUND((PERCENT_RANK() OVER (PARTITION BY c.municipality_id ORDER BY vr.votes_obtained) * 100)::NUMERIC, 2) as percentile_rank
+    ROUND((PERCENT_RANK() OVER (PARTITION BY c.election_id, c.organ_id, c.municipality_id ORDER BY vr.votes_obtained) * 100)::NUMERIC, 2) as percentile_rank
     
 FROM candidacy c
+JOIN election e ON c.election_id = e.election_id
+JOIN electoral_organ eo ON c.organ_id = eo.organ_id
 JOIN municipality m ON c.municipality_id = m.municipality_id
 JOIN district d ON m.district_id = d.district_id
 JOIN vote_result vr ON c.candidacy_id = vr.candidacy_id
 LEFT JOIN party p ON c.party_id = p.party_id
 LEFT JOIN coalition co ON c.coalition_id = co.coalition_id
-WHERE c.organ_id = (SELECT organ_id FROM electoral_organ WHERE organ_code = 'CM')  -- Câmara Municipal
-    AND c.election_id = (SELECT election_id FROM election WHERE election_year = 2021 AND election_type_id = (SELECT election_type_id FROM election_type WHERE type_code = 'AUT'))
+WHERE e.election_type_id = (SELECT election_type_id FROM election_type WHERE type_code = 'AUT')
 ORDER BY m.municipality_name, tied_rank;
 
 COMMENT ON VIEW analytical_query_1_party_rankings IS 
@@ -58,6 +61,8 @@ COMMENT ON VIEW analytical_query_1_party_rankings IS
 -- Uses: AVG() OVER, LAG(), LEAD()
 CREATE OR REPLACE VIEW analytical_query_2_district_comparison AS
 SELECT 
+    e.election_year,
+    eo.organ_code,
     d.district_name,
     m.municipality_name,
     COALESCE(p.party_acronym, co.coalition_acronym) as party,
@@ -66,37 +71,38 @@ SELECT
     
     -- District average for this party
     ROUND(AVG(vr.vote_percentage) OVER (
-        PARTITION BY d.district_id, COALESCE(p.party_id, co.coalition_id)
+        PARTITION BY c.election_id, c.organ_id, d.district_id, COALESCE(p.party_id, -co.coalition_id)
     ), 2) as district_avg_pct,
     
     -- Difference from district average
     ROUND(
         vr.vote_percentage - AVG(vr.vote_percentage) OVER (
-            PARTITION BY d.district_id, COALESCE(p.party_id, co.coalition_id)
+            PARTITION BY c.election_id, c.organ_id, d.district_id, COALESCE(p.party_id, -co.coalition_id)
         ), 
         2
     ) as diff_from_district_avg,
     
     -- Previous municipality result for same party (alphabetically)
     LAG(vr.vote_percentage) OVER (
-        PARTITION BY d.district_id, COALESCE(p.party_id, co.coalition_id)
+        PARTITION BY c.election_id, c.organ_id, d.district_id, COALESCE(p.party_id, -co.coalition_id)
         ORDER BY m.municipality_name
     ) as prev_municipality_pct,
     
     -- Next municipality result for same party
     LEAD(vr.vote_percentage) OVER (
-        PARTITION BY d.district_id, COALESCE(p.party_id, co.coalition_id)
+        PARTITION BY c.election_id, c.organ_id, d.district_id, COALESCE(p.party_id, -co.coalition_id)
         ORDER BY m.municipality_name
     ) as next_municipality_pct
 
 FROM candidacy c
+JOIN election e ON c.election_id = e.election_id
+JOIN electoral_organ eo ON c.organ_id = eo.organ_id
 JOIN municipality m ON c.municipality_id = m.municipality_id
 JOIN district d ON m.district_id = d.district_id
 JOIN vote_result vr ON c.candidacy_id = vr.candidacy_id
 LEFT JOIN party p ON c.party_id = p.party_id
 LEFT JOIN coalition co ON c.coalition_id = co.coalition_id
-WHERE c.organ_id = (SELECT organ_id FROM electoral_organ WHERE organ_code = 'CM')
-    AND c.election_id = (SELECT election_id FROM election WHERE election_year = 2021 AND election_type_id = (SELECT election_type_id FROM election_type WHERE type_code = 'AUT'))
+WHERE e.election_type_id = (SELECT election_type_id FROM election_type WHERE type_code = 'AUT')
 ORDER BY d.district_name, party, m.municipality_name;
 
 COMMENT ON VIEW analytical_query_2_district_comparison IS 
@@ -106,24 +112,28 @@ COMMENT ON VIEW analytical_query_2_district_comparison IS
 -- Uses: AVG() OVER with frame, DENSE_RANK(), NTILE()
 CREATE OR REPLACE VIEW analytical_query_3_turnout_analysis AS
 SELECT 
+    e.election_year,
+    eo.organ_code,
     m.municipality_name,
     d.district_name,
     t.turnout_percentage,
     
     -- Rank by turnout
-    DENSE_RANK() OVER (ORDER BY t.turnout_percentage DESC) as turnout_rank,
+    DENSE_RANK() OVER (PARTITION BY t.election_id, t.organ_id ORDER BY t.turnout_percentage DESC) as turnout_rank,
     
     -- Divide into quartiles
-    NTILE(4) OVER (ORDER BY t.turnout_percentage) as turnout_quartile,
+    NTILE(4) OVER (PARTITION BY t.election_id, t.organ_id ORDER BY t.turnout_percentage) as turnout_quartile,
     
     -- Moving average of turnout (3 municipalities window)
     ROUND(AVG(t.turnout_percentage) OVER (
+        PARTITION BY t.election_id, t.organ_id
         ORDER BY t.turnout_percentage
         ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING
     ), 2) as moving_avg_turnout,
     
     -- Cumulative average
     ROUND(AVG(t.turnout_percentage) OVER (
+        PARTITION BY t.election_id, t.organ_id
         ORDER BY m.municipality_name
         ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
     ), 2) as cumulative_avg_turnout,
@@ -132,10 +142,11 @@ SELECT
     t.votes_cast
 
 FROM turnout t
+JOIN election e ON t.election_id = e.election_id
+JOIN electoral_organ eo ON t.organ_id = eo.organ_id
 JOIN municipality m ON t.municipality_id = m.municipality_id
 JOIN district d ON m.district_id = d.district_id
-WHERE t.election_id = (SELECT election_id FROM election WHERE election_year = 2021 AND election_type_id = (SELECT election_type_id FROM election_type WHERE type_code = 'AUT'))
-    AND t.organ_id = (SELECT organ_id FROM electoral_organ WHERE organ_code = 'CM')
+WHERE e.election_type_id = (SELECT election_type_id FROM election_type WHERE type_code = 'AUT')
 ORDER BY t.turnout_percentage DESC;
 
 COMMENT ON VIEW analytical_query_3_turnout_analysis IS 
@@ -148,6 +159,8 @@ COMMENT ON VIEW analytical_query_3_turnout_analysis IS
 -- Query 4: Hierarchical vote totals using ROLLUP (District → Municipality → Party)
 CREATE OR REPLACE VIEW analytical_query_4_rollup_hierarchical AS
 SELECT 
+    e.election_year,
+    eo.organ_code,
     d.district_name,
     m.municipality_name,
     COALESCE(p.party_acronym, co.coalition_acronym) as party,
@@ -166,17 +179,18 @@ SELECT
     END as aggregation_level
 
 FROM candidacy c
+JOIN election e ON c.election_id = e.election_id
+JOIN electoral_organ eo ON c.organ_id = eo.organ_id
 JOIN municipality m ON c.municipality_id = m.municipality_id
 JOIN district d ON m.district_id = d.district_id
 LEFT JOIN party p ON c.party_id = p.party_id
 LEFT JOIN coalition co ON c.coalition_id = co.coalition_id
 JOIN vote_result vr ON c.candidacy_id = vr.candidacy_id
 LEFT JOIN seat_result sr ON c.candidacy_id = sr.candidacy_id
-WHERE c.organ_id = (SELECT organ_id FROM electoral_organ WHERE organ_code = 'CM')
-    AND c.election_id = (SELECT election_id FROM election WHERE election_year = 2021 AND election_type_id = (SELECT election_type_id FROM election_type WHERE type_code = 'AUT'))
+WHERE e.election_type_id = (SELECT election_type_id FROM election_type WHERE type_code = 'AUT')
 
-GROUP BY ROLLUP(d.district_name, m.municipality_name, COALESCE(p.party_acronym, co.coalition_acronym))
-ORDER BY d.district_name NULLS LAST, m.municipality_name NULLS LAST, party NULLS LAST;
+GROUP BY ROLLUP(e.election_year, eo.organ_code, d.district_name, m.municipality_name, COALESCE(p.party_acronym, co.coalition_acronym))
+ORDER BY e.election_year NULLS LAST, eo.organ_code NULLS LAST, d.district_name NULLS LAST, m.municipality_name NULLS LAST, party NULLS LAST;
 
 COMMENT ON VIEW analytical_query_4_rollup_hierarchical IS 
 'ROLLUP: Hierarchical aggregation of votes by district → municipality → party';
@@ -188,6 +202,7 @@ COMMENT ON VIEW analytical_query_4_rollup_hierarchical IS
 -- Query 5: Multi-dimensional analysis using CUBE (District × Party × Organ)
 CREATE OR REPLACE VIEW analytical_query_5_cube_multidimensional AS
 SELECT 
+    e.election_year,
     d.district_name,
     COALESCE(p.party_acronym, co.coalition_acronym) as party,
     eo.organ_name,
@@ -217,6 +232,7 @@ SELECT
     END as cube_dimension
 
 FROM candidacy c
+JOIN election e ON c.election_id = e.election_id
 JOIN municipality m ON c.municipality_id = m.municipality_id
 JOIN district d ON m.district_id = d.district_id
 JOIN electoral_organ eo ON c.organ_id = eo.organ_id
@@ -224,10 +240,10 @@ LEFT JOIN party p ON c.party_id = p.party_id
 LEFT JOIN coalition co ON c.coalition_id = co.coalition_id
 JOIN vote_result vr ON c.candidacy_id = vr.candidacy_id
 LEFT JOIN seat_result sr ON c.candidacy_id = sr.candidacy_id
-WHERE c.election_id = (SELECT election_id FROM election WHERE election_year = 2021 AND election_type_id = (SELECT election_type_id FROM election_type WHERE type_code = 'AUT'))
+WHERE e.election_type_id = (SELECT election_type_id FROM election_type WHERE type_code = 'AUT')
 
-GROUP BY CUBE(d.district_name, COALESCE(p.party_acronym, co.coalition_acronym), eo.organ_name)
-ORDER BY cube_dimension, d.district_name NULLS LAST, party NULLS LAST, eo.organ_name NULLS LAST;
+GROUP BY CUBE(e.election_year, d.district_name, COALESCE(p.party_acronym, co.coalition_acronym), eo.organ_name)
+ORDER BY cube_dimension, e.election_year NULLS LAST, d.district_name NULLS LAST, party NULLS LAST, eo.organ_name NULLS LAST;
 
 COMMENT ON VIEW analytical_query_5_cube_multidimensional IS 
 'CUBE: Multi-dimensional analysis across district, party, and organ';
@@ -239,6 +255,8 @@ COMMENT ON VIEW analytical_query_5_cube_multidimensional IS
 -- Query 6: Advanced aggregates - STRING_AGG, ARRAY_AGG, JSON aggregation, FILTER
 CREATE OR REPLACE VIEW analytical_query_6_advanced_aggregates AS
 SELECT 
+    e.election_year,
+    eo.organ_code,
     m.municipality_name,
     d.district_name,
     
@@ -282,6 +300,8 @@ SELECT
     MAX(t.turnout_percentage) as turnout_pct
 
 FROM candidacy c
+JOIN election e ON c.election_id = e.election_id
+JOIN electoral_organ eo ON c.organ_id = eo.organ_id
 JOIN municipality m ON c.municipality_id = m.municipality_id
 JOIN district d ON m.district_id = d.district_id
 LEFT JOIN party p ON c.party_id = p.party_id
@@ -293,10 +313,9 @@ LEFT JOIN turnout t ON (
     t.organ_id = c.organ_id AND
     t.municipality_id = c.municipality_id
 )
-WHERE c.organ_id = (SELECT organ_id FROM electoral_organ WHERE organ_code = 'CM')
-    AND c.election_id = (SELECT election_id FROM election WHERE election_year = 2021 AND election_type_id = (SELECT election_type_id FROM election_type WHERE type_code = 'AUT'))
+WHERE e.election_type_id = (SELECT election_type_id FROM election_type WHERE type_code = 'AUT')
 
-GROUP BY m.municipality_name, d.district_name
+GROUP BY e.election_year, eo.organ_code, m.municipality_name, d.district_name
 ORDER BY total_votes DESC;
 
 COMMENT ON VIEW analytical_query_6_advanced_aggregates IS 
@@ -310,6 +329,7 @@ COMMENT ON VIEW analytical_query_6_advanced_aggregates IS
 -- This demonstrates the algorithm visually
 CREATE OR REPLACE FUNCTION demonstrate_dhondt(
     p_municipality_name VARCHAR,
+    p_election_year INTEGER DEFAULT NULL,
     p_total_seats INTEGER DEFAULT 7
 ) RETURNS TABLE (
     iteration INTEGER,
@@ -329,7 +349,11 @@ BEGIN
     FROM municipality m WHERE m.municipality_name = p_municipality_name LIMIT 1;
     
     SELECT election_id INTO v_election_id
-    FROM election WHERE election_year = 2021 AND election_type_id = (SELECT election_type_id FROM election_type WHERE type_code = 'AUT') LIMIT 1;
+    FROM election
+    WHERE election_type_id = (SELECT election_type_id FROM election_type WHERE type_code = 'AUT')
+        AND (p_election_year IS NULL OR election_year = p_election_year)
+    ORDER BY election_year DESC
+    LIMIT 1;
     
     SELECT organ_id INTO v_organ_id
     FROM electoral_organ WHERE organ_code = 'CM';
@@ -400,6 +424,7 @@ COMMENT ON FUNCTION demonstrate_dhondt IS
 CREATE OR REPLACE VIEW analytical_query_8_cross_district_comparison AS
 WITH party_district_summary AS (
     SELECT 
+        e.election_year,
         d.district_name,
         COALESCE(p.party_acronym, co.coalition_acronym) as party,
         SUM(vr.votes_obtained) as total_votes,
@@ -407,17 +432,18 @@ WITH party_district_summary AS (
         SUM(COALESCE(sr.seats_obtained, 0)) as total_seats,
         COUNT(DISTINCT CASE WHEN vr.is_winner THEN c.municipality_id END) as municipalities_won
     FROM candidacy c
+    JOIN election e ON c.election_id = e.election_id
     JOIN municipality m ON c.municipality_id = m.municipality_id
     JOIN district d ON m.district_id = d.district_id
     LEFT JOIN party p ON c.party_id = p.party_id
     LEFT JOIN coalition co ON c.coalition_id = co.coalition_id
     JOIN vote_result vr ON c.candidacy_id = vr.candidacy_id
     LEFT JOIN seat_result sr ON c.candidacy_id = sr.candidacy_id
-    WHERE c.organ_id = (SELECT organ_id FROM electoral_organ WHERE organ_code = 'CM')
-        AND c.election_id = (SELECT election_id FROM election WHERE election_year = 2021 AND election_type_id = (SELECT election_type_id FROM election_type WHERE type_code = 'AUT'))
-    GROUP BY d.district_name, COALESCE(p.party_acronym, co.coalition_acronym)
+    WHERE e.election_type_id = (SELECT election_type_id FROM election_type WHERE type_code = 'AUT')
+    GROUP BY e.election_year, d.district_name, COALESCE(p.party_acronym, co.coalition_acronym)
 )
 SELECT 
+    election_year,
     district_name,
     party,
     total_votes,
@@ -426,16 +452,16 @@ SELECT
     municipalities_won,
     
     -- Rank party within district
-    RANK() OVER (PARTITION BY district_name ORDER BY total_votes DESC) as district_rank,
+    RANK() OVER (PARTITION BY election_year, district_name ORDER BY total_votes DESC) as district_rank,
     
     -- Compare to national average for this party
-    ROUND(avg_percentage - AVG(avg_percentage) OVER (PARTITION BY party), 2) as diff_from_national_avg,
+    ROUND(avg_percentage - AVG(avg_percentage) OVER (PARTITION BY election_year, party), 2) as diff_from_national_avg,
     
     -- Quartile within party nationally
-    NTILE(4) OVER (PARTITION BY party ORDER BY avg_percentage) as performance_quartile
+    NTILE(4) OVER (PARTITION BY election_year, party ORDER BY avg_percentage) as performance_quartile
     
 FROM party_district_summary
-ORDER BY district_name, district_rank;
+ORDER BY election_year, district_name, district_rank;
 
 COMMENT ON VIEW analytical_query_8_cross_district_comparison IS 
 'Complex query: Cross-district party comparison with multiple analytics';
@@ -444,5 +470,4 @@ COMMENT ON VIEW analytical_query_8_cross_district_comparison IS
 -- EXPORT QUERIES TO CSV (for documentation/testing)
 -- ============================================================================
 
--- These queries can be run to export analytical results for verification
-COMMENT ON DATABASE postgres IS 'Election Analytics Platform - Advanced Topics in Databases Project';
+-- These queries can be run to export analytical results for verification.

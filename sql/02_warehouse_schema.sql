@@ -122,12 +122,21 @@ CREATE TABLE dim_party (
     political_spectrum VARCHAR(20),  -- e.g., 'left', 'center', 'right'
     party_size VARCHAR(20),  -- e.g., 'major', 'minor', 'independent'
     
-    UNIQUE(party_id, coalition_id)
+    CHECK (
+        (party_id IS NOT NULL AND coalition_id IS NULL) OR
+        (party_id IS NULL AND coalition_id IS NOT NULL)
+    )
 );
 
 CREATE INDEX idx_dim_party_acronym ON dim_party(party_acronym);
 CREATE INDEX idx_dim_party_coalition ON dim_party(is_coalition);
 CREATE INDEX idx_dim_party_spectrum ON dim_party(political_spectrum);
+CREATE UNIQUE INDEX uq_dim_party_party
+    ON dim_party (party_id)
+    WHERE party_id IS NOT NULL;
+CREATE UNIQUE INDEX uq_dim_party_coalition
+    ON dim_party (coalition_id)
+    WHERE coalition_id IS NOT NULL;
 
 COMMENT ON TABLE dim_party IS 'Party dimension including coalitions';
 
@@ -182,6 +191,7 @@ CREATE INDEX idx_fact_result_municipality ON fact_election_result(municipality_k
 CREATE INDEX idx_fact_result_district ON fact_election_result(district_key);
 CREATE INDEX idx_fact_result_votes ON fact_election_result(votes_obtained DESC);
 CREATE INDEX idx_fact_result_seats ON fact_election_result(seats_obtained DESC);
+CREATE UNIQUE INDEX uq_fact_election_result_candidacy ON fact_election_result(candidacy_id);
 
 -- Composite indexes for common join patterns
 CREATE INDEX idx_fact_result_election_muni ON fact_election_result(election_key, municipality_key);
@@ -229,6 +239,14 @@ CREATE TABLE fact_turnout (
 CREATE INDEX idx_fact_turnout_election ON fact_turnout(election_key);
 CREATE INDEX idx_fact_turnout_municipality ON fact_turnout(municipality_key);
 CREATE INDEX idx_fact_turnout_percentage ON fact_turnout(turnout_percentage);
+CREATE UNIQUE INDEX uq_fact_turnout_scope
+    ON fact_turnout (
+        election_key,
+        organ_key,
+        COALESCE(district_key, -1),
+        COALESCE(municipality_key, -1),
+        COALESCE(parish_key, -1)
+    );
 
 COMMENT ON TABLE fact_turnout IS 'Fact table: voter turnout statistics';
 

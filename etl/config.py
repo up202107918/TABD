@@ -4,36 +4,43 @@ Advanced Topics in Databases - Practical Assignment
 """
 
 import os
-from typing import Dict
+from typing import Dict, List
+
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_DIR = os.path.join(BASE_DIR, 'data')
+
+
+def _discover_dataset_dirs(root_dir: str) -> List[str]:
+    """Return absolute paths for each dataset directory under ETL data."""
+    if not os.path.isdir(root_dir):
+        return []
+
+    dataset_dirs = []
+    for entry in sorted(os.listdir(root_dir)):
+        full_path = os.path.join(root_dir, entry)
+        if os.path.isdir(full_path):
+            dataset_dirs.append(full_path)
+    return dataset_dirs
 
 # Database connection parameters
 DB_CONFIG: Dict[str, str] = {
     'host': os.getenv('DB_HOST', 'localhost'),
     'port': os.getenv('DB_PORT', '5432'),
     'database': os.getenv('DB_NAME', 'election_analytics'),
-    'user': os.getenv('DB_USER', 'net'),
-    'password': os.getenv('DB_PASSWORD', '')
+    'user': os.getenv('DB_USER', 'username'),
+    'password': os.getenv('DB_PASSWORD', 'password')
 }
+
+# Path configuration for ETL input folders
+DATA_PATH = DATA_DIR  # Backward-compatible alias
+DATASET_DIRS = _discover_dataset_dirs(DATA_DIR)
 
 # Schema names
 SCHEMAS = {
     'staging': 'staging',
     'operational': 'operational',
     'warehouse': 'warehouse'
-}
-
-# Data source URLs
-DATA_SOURCES = {
-    'autarquicas_2021': 'https://www.cne.pt/sites/default/files/dl/2021al_mapa_oficial.zip',
-    'caop_2021': 'https://www.dgterritorio.gov.pt/sites/default/files/ficheiros-cartografia/CAOP2021_SHP_AAD-ETRS89.zip'
-}
-
-# Local data directories
-DATA_DIRS = {
-    'downloads': './data/downloads',
-    'extracted': './data/extracted',
-    'processed': './data/processed',
-    'logs': './data/logs'
 }
 
 # ETL Configuration
@@ -73,7 +80,8 @@ def get_connection_string() -> str:
     """Generate PostgreSQL connection string"""
     return f"postgresql://{DB_CONFIG['user']}:{DB_CONFIG['password']}@{DB_CONFIG['host']}:{DB_CONFIG['port']}/{DB_CONFIG['database']}"
 
-def ensure_data_directories():
-    """Create data directories if they don't exist"""
-    for dir_path in DATA_DIRS.values():
-        os.makedirs(dir_path, exist_ok=True)
+
+def get_dataset_dirs() -> List[str]:
+    """Get dataset directories and refresh discovery if needed."""
+    return _discover_dataset_dirs(DATA_DIR)
+
