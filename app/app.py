@@ -155,10 +155,15 @@ def inject_election_context():
         (e for e in elections if e['election_id'] == election_id),
         elections[0] if elections else None,
     )
+    current_municipality_id = None
+    if request.view_args and 'municipality_id' in request.view_args:
+        current_municipality_id = request.view_args['municipality_id']
+
     return {
         'elections': elections,
         'current_election_id': election_id,
         'current_election': current,
+        'current_municipality_id': current_municipality_id,
         'municipalities_select': fetch_municipalities_for_select(),
     }
 

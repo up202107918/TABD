@@ -47,7 +47,7 @@ python run_etl.py --dataset aut_2021 --mode full
 
 Default `--mode` is `staging-only`; for a complete load always pass `--mode full`.
 
-Configuration: `config.py` (`DATASETS`, `DB_*` env vars). Only `aut_2021` is wired in config; other year folders under `data/` are not loaded until added to `DATASETS`.
+Configuration: `config.py` (`DATASETS`, `DB_*` env vars). Loaded datasets: `aut_2017`, `aut_2021`; other year folders under `data/` need an entry in `DATASETS` before use.
 
 ---
 
@@ -104,7 +104,6 @@ python run_etl.py --dataset aut_2021 --mode full
 etl/
 ├── config.py              # DB, DATASETS, CAOP URLs
 ├── run_etl.py             # CLI entry point
-├── etl_pipeline.py        # Legacy wrapper → staging-only behaviour
 ├── pipeline/
 │   ├── runner.py          # Orchestration + run log
 │   ├── extract.py

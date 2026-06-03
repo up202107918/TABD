@@ -173,95 +173,13 @@
         </div>
     </div>
     
-    <!-- Advanced Analytics Queries -->
     <div class="row mb-4">
         <div class="col-md-12">
-            <h2 class="mb-3">Advanced SQL Analytics</h2>
-        </div>
-        
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-body text-center">
-                    <h5 class="card-title">Window Functions</h5>
-                    <p class="card-text">Rankings, running totals, and percentiles</p>
-                    <a href="#" class="btn btn-primary" onclick="runWindowQuery(); return false;">Run Query</a>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-body text-center">
-                    <h5 class="card-title">GROUP BY ROLLUP</h5>
-                    <p class="card-text">Hierarchical aggregation by territory</p>
-                    <a href="#" class="btn btn-primary" onclick="runRollupQuery(); return false;">Run Query</a>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-body text-center">
-                    <h5 class="card-title">GROUP BY CUBE</h5>
-                    <p class="card-text">Multi-dimensional analysis</p>
-                    <a href="#" class="btn btn-primary" onclick="runCubeQuery(); return false;">Run Query</a>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Query Results Display -->
-    <div class="row mb-4" id="queryResults" style="display: none;">
-        <div class="col-md-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 id="queryTitle">Query Results</h5>
-                </div>
-                <div class="card-body">
-                    <div id="queryContent" style="max-height: 400px; overflow-y: auto;">
-                        <!-- Results will be inserted here -->
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Data Insights -->
-    <div class="row mb-4">
-        <div class="col-md-12">
-            <h2 class="mb-3">Key Insights</h2>
-        </div>
-        
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">🎯 Highest Turnout</h5>
-                    <p class="card-text">
-                        Analysis of municipalities with highest voter participation and common characteristics.
-                    </p>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">📍 Geographic Patterns</h5>
-                    <p class="card-text">
-                        Regional voting patterns and party strongholds across Portuguese districts.
-                    </p>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">⚖️ Proportionality</h5>
-                    <p class="card-text">
-                        D'Hondt method impact: comparison of vote share vs. seat allocation.
-                    </p>
-                </div>
+            <div class="alert alert-secondary mb-0">
+                <strong>Advanced SQL</strong> (window functions, ROLLUP, CUBE, D'Hondt) runs in PostgreSQL —
+                see <code>sql/04_analytical_queries.sql</code> and sample output
+                <code>docs/sql_outputs/demo_results.txt</code>
+                (<code>python scripts/run_sql_demos.py</code> after ETL).
             </div>
         </div>
     </div>
@@ -483,36 +401,6 @@
                 }
             }
         });
-    }
-    
-    // Query execution functions
-    function runWindowQuery() {
-        showQueryResults('Window Functions - Party Rankings', 
-            'Demonstrating ROW_NUMBER(), RANK(), SUM() OVER, PERCENT_RANK()...');
-        // In a real implementation, this would fetch from an API endpoint
-    }
-    
-    function runRollupQuery() {
-        showQueryResults('GROUP BY ROLLUP - Hierarchical Aggregation', 
-            'District → Municipality → Party aggregation with subtotals...');
-    }
-    
-    function runCubeQuery() {
-        showQueryResults('GROUP BY CUBE - Multi-dimensional Analysis', 
-            'All combinations of District × Party × Organ...');
-    }
-    
-    function showQueryResults(title, content) {
-        document.getElementById('queryTitle').textContent = title;
-        document.getElementById('queryContent').innerHTML = `
-            <div class="alert alert-info">
-                <strong>Query Executed:</strong><br>
-                ${content}<br><br>
-                <em>In production, this would display actual query results from the database.</em>
-            </div>
-        `;
-        document.getElementById('queryResults').style.display = 'block';
-        document.getElementById('queryResults').scrollIntoView({ behavior: 'smooth' });
     }
 </script>
 {% endblock %}

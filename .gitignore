@@ -43,6 +43,8 @@ tmp_*.txt
 
 # Regenerated locally (see docs/sql_outputs/README.md)
 docs/sql_outputs/_apply_log.txt
+docs/sql_outputs/_demo_run.txt
+sql/*.log
 
 # IDE
 .vscode/

@@ -171,7 +171,7 @@ Extensions beyond minimum; do only if time remains.
 | Dataset **`aut_2025`** / **`aut_2013`** (folders already under `etl/data/`) | §6 |
 | **Parish (freguesia)** level in schema + ETL | §5.5 stronger groups |
 | Default `run_etl.py` mode → **`full`** instead of `staging-only` | Fewer user errors |
-| Remove or deprecate legacy **`etl_pipeline.py`** wrapper | Cleanup |
+| `[x]` | Remove legacy **`etl_pipeline.py`** wrapper | Cleanup |
 | Materialized views for heavy aggregates | §6 |
 | Automated ETL **unit tests** (row counts per phase) | Maintenance |
 
@@ -188,8 +188,8 @@ Extensions beyond minimum; do only if time remains.
 
 | Task | Notes |
 |------|--------|
-| Consolidate duplicate docs (`FLASK_WEB_APP_DOCUMENTATION.md`, `COMPREHENSIVE_*`) into `docs/` or archive | Clarity |
-| Ensure **`tmp.txt`** / passwords not committed | Security |
+| `[x]` | Removed duplicate root docs; canonical: `README.md`, `docs/`, `etl/README.md`, `todo.md` | Clarity |
+| `[x]` | **`tmp.txt`** removed; listed in `.gitignore` (no passwords in repo) | Security |
 | CI job: schema load + ETL smoke on empty DB | Optional automation |
 
 ---

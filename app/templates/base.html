@@ -146,7 +146,7 @@
                         <select id="municipalitySelect" class="form-select form-select-sm" style="min-width: 14rem;">
                             <option value="">— select —</option>
                             {% for m in municipalities_select %}
-                            <option value="{{ m.municipality_id }}">{{ m.municipality_name }} ({{ m.district_name }})</option>
+                            <option value="{{ m.municipality_id }}" {% if m.municipality_id == current_municipality_id %}selected{% endif %}>{{ m.municipality_name }} ({{ m.district_name }})</option>
                             {% endfor %}
                         </select>
                     </li>

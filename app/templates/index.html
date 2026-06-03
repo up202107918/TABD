@@ -8,7 +8,7 @@
     <div class="container">
         <h1 class="display-4">Portuguese Local Elections{% if current_election %} {{ current_election.election_year }}{% endif %}</h1>
         <p class="lead">{{ current_election.description if current_election else 'Election analytics' }}</p>
-        <p>Explore election data across Portugal's districts, municipalities, and parishes</p>
+        <p>Explore election data across Portugal's districts and municipalities</p>
     </div>
 </div>
 
@@ -17,19 +17,19 @@
     <div class="row mb-4">
         <div class="col-md-3">
             <div class="stat-card text-center">
-                <div class="stat-number">{{ stats.total_districts or 18 }}</div>
+                <div class="stat-number">{{ stats.total_districts if stats.get('total_districts') is not none else '—' }}</div>
                 <div class="stat-label">Districts</div>
             </div>
         </div>
         <div class="col-md-3">
             <div class="stat-card text-center">
-                <div class="stat-number">{{ stats.total_municipalities or 308 }}</div>
+                <div class="stat-number">{{ stats.total_municipalities if stats.get('total_municipalities') is not none else '—' }}</div>
                 <div class="stat-label">Municipalities</div>
             </div>
         </div>
         <div class="col-md-3">
             <div class="stat-card text-center">
-                <div class="stat-number">{{ stats.total_parties or 20 }}</div>
+                <div class="stat-number">{{ stats.total_parties if stats.get('total_parties') is not none else '—' }}</div>
                 <div class="stat-label">Parties</div>
             </div>
         </div>
@@ -80,39 +80,6 @@
         <div class="col-md-12">
             <h2 class="mb-3">Electoral Map of Portugal</h2>
             <div id="map"></div>
-        </div>
-    </div>
-    
-    <!-- Features Section -->
-    <div class="row mb-4">
-        <div class="col-md-12">
-            <h2 class="mb-3">Platform Features</h2>
-        </div>
-        <div class="col-md-6 mb-3">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">🔍 Advanced SQL Queries</h5>
-                    <ul>
-                        <li>Window functions for ranking and analysis</li>
-                        <li>GROUP BY ROLLUP for hierarchical aggregation</li>
-                        <li>GROUP BY CUBE for multi-dimensional analysis</li>
-                        <li>D'Hondt method for seat allocation</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6 mb-3">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">🗄️ Database Architecture</h5>
-                    <ul>
-                        <li>Normalized operational schema</li>
-                        <li>Star schema data warehouse</li>
-                        <li>PostGIS spatial data integration</li>
-                        <li>Automated triggers and functions</li>
-                    </ul>
-                </div>
-            </div>
         </div>
     </div>
     

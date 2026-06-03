@@ -23,7 +23,7 @@ Each election year folder typically contains:
 - **mapa_3** / **Parte3** — elected officials
 - **mapa_anexo** / **Parte4** — annex / supplementary tables
 
-The ETL reads **Excel** (`.xls`, `.xlsx`). `.ods` files in the ZIP are kept for reference but are not loaded. MVP uses **mapa_1** (votes + CM turnout); **mapa_anexo** is not loaded; **mapa_2** / **mapa_3** are validation-only — see [docs/etl_reconciliation.md](../../docs/etl_reconciliation.md) and `etl/docs/source_inventory_2021.md`.
+The ETL reads **Excel** (`.xls`, `.xlsx`). `.ods` files in the ZIP are kept for reference but are not loaded. MVP uses **mapa_1** (votes + CM turnout), **mapa_2** (seats → `seat_result`); **mapa_anexo** and **mapa_3** are not loaded — see [docs/etl_reconciliation.md](../../docs/etl_reconciliation.md) and `etl/docs/source_inventory_2021.md`.
 
 ## Official download URLs
 
@@ -51,9 +51,6 @@ python run_etl.py --dataset aut_2021 --mode full
 
 # Staging only (Excel to staging tables):
 python run_etl.py --dataset aut_2021 --mode staging-only
-
-# Legacy wrapper (same as staging-only for aut_2021):
-python etl_pipeline.py
 ```
 
 Requires PostgreSQL (`DB_*` env vars or `etl/config.py`) and schemas `sql/01`, `02`, `03`, `05` applied. See [etl/README.md](../README.md).

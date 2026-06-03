@@ -117,7 +117,6 @@ def main() -> int:
             f"-- Exit code: {proc_demo.returncode}\n\n"
         )
         demo_path.write_text(header + demo_body, encoding="utf-8")
-        (OUTPUT_DIR / "_demo_run.txt").write_text(demo_body, encoding="utf-8")
         if proc_demo.returncode != 0:
             print(proc_demo.stderr, file=sys.stderr)
             return proc_demo.returncode

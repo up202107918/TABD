@@ -163,13 +163,15 @@ Functions, PL/pgSQL, and triggers in `sql/03_functions_triggers.sql` (e.g. D'Hon
 | [etl/docs/source_inventory_2021.md](etl/docs/source_inventory_2021.md) | Which CNE files are parsed |
 | [docs/etl_reconciliation.md](docs/etl_reconciliation.md) | CNE ↔ CAOP reconciliation (§5.2) |
 | [docs/reproducibility.md](docs/reproducibility.md) | End-to-end rebuild guide (§9) |
+| [docs/cross_election_comparison.md](docs/cross_election_comparison.md) | 2017 vs 2021 API and `/analytics` UI |
+| [docs/sql_outputs/README.md](docs/sql_outputs/README.md) | Regenerate analytical demo outputs |
 | [todo.md](todo.md) | Remaining work (ETL extensions, report, etc.) |
 
 ---
 
 ## Known MVP limitations
 
-- Single configured dataset: **2021** local elections, organ **CM**, **municipality** level (no parishes in ETL).  
+- ETL MVP: local elections **2017 / 2021** (`aut_2017`, `aut_2021`), organ **CM**, **municipality** level (no parishes in ETL).  
 - **warehouse agg_*** not populated after load.  
 - ~50 municipalities in CNE mapa_2 may be absent from mapa_1 ETL (no votes / seats in DB).  
 - CAOP fallback GeoJSON covers **continent**; islands may lack geometry until official shapefiles are added.  
