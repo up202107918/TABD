@@ -13,7 +13,7 @@ env/
 *.db
 *.sqlite
 
-# Data files (too large for Git)
+# Data files (too large for Git; regenerate via ETL or manual download)
 data/downloads/*
 data/extracted/*
 data/processed/*
@@ -21,6 +21,18 @@ data/logs/*.log
 !data/downloads/.gitkeep
 !data/extracted/.gitkeep
 !data/processed/.gitkeep
+
+etl/data/downloads/*
+etl/data/extracted/*
+etl/data/processed/*
+etl/data/logs/*.log
+!etl/data/downloads/.gitkeep
+!etl/data/extracted/.gitkeep
+!etl/data/processed/.gitkeep
+!etl/data/logs/.gitkeep
+
+# Local setup notes (may contain DB passwords)
+tmp.txt
 
 # IDE
 .vscode/
