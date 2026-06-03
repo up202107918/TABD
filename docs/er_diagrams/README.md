@@ -1,41 +1,34 @@
-# ER Diagrams Directory
+# ER diagrams (deliverables)
 
-Place your Entity-Relationship diagrams here.
+Generated from **pgAdmin 4 → ERD For Schema** on database `election_analytics` (June 2026).
 
-## Required Diagrams
+## Files in this folder
 
-1. **Operational Schema ER Diagram**
-   - Shows all tables in the operational schema
-   - Relationships between entities
-   - Primary and foreign keys
-   - File: `operational_schema_er.png` or `.pdf`
+| File | Description |
+|------|-------------|
+| `operational_schema_er.png` | Normalized operational model (`operational.*`) |
+| `warehouse_star_schema.png` | Warehouse model (`warehouse.*` — facts + dimensions) |
+| `operational_schema.pgerd` | pgAdmin ERD project (re-export / edit) |
+| `warehouse_schema.pgerd` | pgAdmin ERD project (re-export / edit) |
 
-2. **Data Warehouse Star Schema**
-   - Fact tables in center
-   - Dimension tables around it
-   - Relationships
-   - File: `warehouse_star_schema.png` or `.pdf`
+Use the PNG files in **`docs/report.pdf`** and slides (§5.1 data modelling).
 
-3. **ETL Data Flow Diagram** (Optional)
-   - Shows data flow from sources through staging to operational/warehouse
-   - File: `etl_flow_diagram.png` or `.pdf`
+## Regenerate PNG from pgAdmin
 
-## Tools Recommended
+1. Schemas **`operational`** / **`warehouse`** → right-click → **ERD For Schema**.
+2. Layout → **Export** → PNG.
+3. Overwrite the matching `.png` above.
 
-- **pgModeler** - PostgreSQL-specific modeling tool
-- **DbSchema** - Universal database designer
-- **draw.io** - Free online diagramming tool
-- **Lucidchart** - Professional diagramming
-- **DBeaver** - Can generate ER diagrams from existing schemas
+## Not included (by design)
 
-## How to Generate from Database
+| Schema | Reason |
+|--------|--------|
+| `staging` | Shown in ETL narrative / `sql/05_staging_schema.sql`, not a separate ER deliverable |
+| `public` | PostGIS system tables only — no project tables |
 
-If your database is already loaded, you can generate diagrams using:
+Optional later: `etl_flow_diagram.png` (CNE → staging → operational → warehouse) for one slide.
 
-```bash
-# Using pgModeler
-pgmodeler-cli --export-to-png --input your_model.dbm --output operational_schema_er.png
+## SQL source of truth
 
-# Using DBeaver
-# Connect to database → Right-click schema → ER Diagram → Export
-```
+- `sql/01_operational_schema.sql`
+- `sql/02_warehouse_schema.sql`

@@ -175,7 +175,7 @@ Details and future tasks: **[todo.md](todo.md)**.
 ## Assignment deliverables (checklist)
 
 - [ ] `docs/report.pdf`  
-- [ ] `docs/er_diagrams/`  
+- [x] `docs/er_diagrams/` — operational + warehouse PNG (pgAdmin ERD)  
 - [ ] `slides/`  
 - [ ] `docs/etl_reconciliation.md` (CNE ↔ CAOP)  
 

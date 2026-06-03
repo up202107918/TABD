@@ -40,7 +40,7 @@ Required by the assignment or Moodle submission. Without these, the project is i
 | `[ ]` | Report: analytical queries + **key findings** (screenshots or result tables) | §5.4, rubric 20% |
 | `[ ]` | Report: frontend + visualizations | §5.5–5.6, rubric 10% |
 | `[ ]` | Report: **contribution of each group member** (2–3 students) | §7.1, §10 |
-| `[ ]` | **`docs/er_diagrams/`** — operational ER + warehouse star schema (PNG/PDF) | §7, rubric 20% |
+| `[x]` | **`docs/er_diagrams/`** — `operational_schema_er.png`, `warehouse_star_schema.png` (+ `.pgerd` sources) | §7, rubric 20% |
 | `[ ]` | **`docs/screenshots/`** — working UI (home map, district, municipality, analytics) | §7 |
 | `[ ]` | **`slides/`** — architecture, schema, ETL, SQL demos, live frontend (10–15 slides) | §7.2 |
 | `[ ]` | **`docs/etl_reconciliation.md`** — CNE ↔ CAOP: IDs, names, missing values, mismatches | §5.2 (explicit) |
