@@ -25,6 +25,7 @@ from pipeline.extract import (  # noqa: E402
     parse_wide_mapa_sheet,
     read_workbook_sheets,
 )
+from pipeline.mapa2_seats import parse_mapa2_cm_seats  # noqa: E402
 
 SAMPLES = [
     ("Lisboa", "LISBOA", "large capital"),
@@ -90,6 +91,18 @@ def load_cne_mapa1() -> Tuple[Dict[str, Dict[str, Any]], Dict[str, Dict[str, int
     )
 
 
+def load_cne_mapa2_cm_seats() -> Dict[str, Dict[str, int]]:
+    """Official seat counts (M columns) per municipality."""
+    records = parse_mapa2_cm_seats(str(MAPA2))
+    by_muni: Dict[str, Dict[str, int]] = {}
+    for rec in records:
+        if rec["seats"] <= 0:
+            continue
+        muni = rec["concelho"].upper()
+        by_muni.setdefault(muni, {})[rec["party_acronym"]] = rec["seats"]
+    return by_muni
+
+
 def load_cne_mapa2_vote_percent() -> Dict[str, Dict[str, float]]:
     """Parse mapa_2 vote-% columns (perc. votos válidos), not mandate counts."""
     from pipeline.extract import party_code_to_acronym  # noqa: E402
@@ -134,7 +147,9 @@ def load_cne_mapa2_vote_percent() -> Dict[str, Dict[str, float]]:
     return percents
 
 
-def fetch_db(conn, municipality_name: str) -> Tuple[Dict[str, Any], Dict[str, int], List[Tuple[str, int, int]]]:
+def fetch_db(
+    conn, municipality_name: str
+) -> Tuple[Dict[str, Any], Dict[str, int], Dict[str, int], List[Tuple[str, int, int]]]:
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute(
             """
@@ -188,7 +203,26 @@ def fetch_db(conn, municipality_name: str) -> Tuple[Dict[str, Any], Dict[str, in
         )
         dhondt = [(r["party_name"], r["votes"], r["seats_allocated"]) for r in cur.fetchall()]
 
-    return dict(turnout), votes, dhondt
+        cur.execute(
+            """
+            SELECT COALESCE(p.party_acronym, co.coalition_acronym) AS party,
+                   sr.seats_obtained,
+                   sr.total_seats_available
+            FROM operational.seat_result sr
+            JOIN operational.candidacy c ON c.candidacy_id = sr.candidacy_id
+            LEFT JOIN operational.party p ON c.party_id = p.party_id
+            LEFT JOIN operational.coalition co ON c.coalition_id = co.coalition_id
+            WHERE c.municipality_id = %s
+              AND c.organ_id = (SELECT organ_id FROM operational.electoral_organ WHERE organ_code = 'CM')
+              AND c.election_id = (SELECT election_id FROM operational.election WHERE election_year = 2021 LIMIT 1)
+              AND sr.seats_obtained > 0
+            ORDER BY sr.seats_obtained DESC
+            """,
+            (turnout["municipality_id"],),
+        )
+        seats_db = {r["party"]: r["seats_obtained"] for r in cur.fetchall()}
+
+    return dict(turnout), votes, seats_db, dhondt
 
 
 def compare_votes(cne: Dict[str, int], db: Dict[str, int]) -> Tuple[int, List[str]]:
@@ -230,8 +264,23 @@ def compare_vote_pct_to_db(
     return mismatches, rows
 
 
+def compare_seats(cne: Dict[str, int], db: Dict[str, int]) -> Tuple[int, List[str]]:
+    all_parties = sorted(set(cne) | set(db))
+    mismatches = 0
+    rows: List[str] = []
+    for party in all_parties:
+        cv, dv = cne.get(party), db.get(party)
+        if cv != dv:
+            mismatches += 1
+            rows.append(f"| {party} | {cv or '—'} | {dv or '—'} | **MISMATCH** |")
+        else:
+            rows.append(f"| {party} | {cv or 0} | {dv or 0} | OK |")
+    return mismatches, rows
+
+
 def main() -> int:
     turnout_cne, votes_cne = load_cne_mapa1()
+    mapa2_seats = load_cne_mapa2_cm_seats()
     mapa2_pct = load_cne_mapa2_vote_percent()
 
     conn = psycopg2.connect(**DB_CONFIG)
@@ -244,8 +293,8 @@ def main() -> int:
         sections.append("# Validation samples — Autárquicas 2021 (CM)\n")
         sections.append(
             f"Generated: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}  \n"
-            f"Sources: `{MAPA1.name}` (votes/turnout), `{MAPA2.name}` (vote %), "
-            f"PostgreSQL `operational.*`, function `allocate_seats_dhondt(..., {CM_SEATS})`.\n"
+            f"Sources: `{MAPA1.name}` (votes/turnout), `{MAPA2.name}` (vote % + seat counts), "
+            f"`operational.seat_result`, function `allocate_seats_dhondt(..., {CM_SEATS})` (demo only).\n"
         )
         sections.append("## Sample municipalities\n")
         sections.append("| Municipality (DB) | CNE `concelho` | Role |")
@@ -264,7 +313,8 @@ def main() -> int:
             t_cne = turnout_cne[key]
             v_cne = votes_cne.get(key, {})
             pct_cne = mapa2_pct.get(key, {})
-            t_db, v_db, dhondt = fetch_db(conn, muni_db)
+            t_db, v_db, seats_db, dhondt = fetch_db(conn, muni_db)
+            seats_cne = mapa2_seats.get(key, {})
 
             sections.append(f"\n## {muni_db} ({role})\n")
             sections.append(f"District (CNE row): **{t_cne['distrito']}** · DB: **{t_db['district_name']}**\n")
@@ -301,7 +351,21 @@ def main() -> int:
             sections.append("|-------|-----|-----|--------|")
             sections.extend(vote_rows)
 
-            sections.append(f"\n### D'Hondt seats (`allocate_seats_dhondt`, {CM_SEATS} seats — ex10.sql pattern)\n")
+            if seats_cne or seats_db:
+                seat_mm, seat_rows = compare_seats(seats_cne, seats_db)
+                sections.append("\n### Seats (mapa_2 M columns vs `seat_result`)\n")
+                sections.append(
+                    f"**Seat mismatches:** {seat_mm} / {len(set(seats_cne) | set(seats_db))} parties · "
+                    f"CNE council total: **{sum(seats_cne.values())}** seats\n"
+                )
+                sections.append("| Party | mapa_2 M | DB `seat_result` | Status |")
+                sections.append("|-------|----------|------------------|--------|")
+                sections.extend(seat_rows)
+                seats_ok = seat_mm == 0 and sum(seats_cne.values()) == sum(seats_db.values())
+            else:
+                seats_ok = True
+
+            sections.append(f"\n### D'Hondt demo (`allocate_seats_dhondt`, {CM_SEATS} seats — ex10.sql pattern)\n")
             sections.append("| Party | Votes | Seats |")
             sections.append("|-------|-------|-------|")
             for party, votes, seats in dhondt:
@@ -323,18 +387,21 @@ def main() -> int:
             summary_rows.append(
                 f"| {muni_db} | Turnout | {'PASS' if turnout_ok else 'FAIL'} | Votes | "
                 f"{'PASS' if vote_ok else 'FAIL'} | mapa_2 % | "
-                f"{'PASS' if pct_ok else 'FAIL'} | D'Hondt | OK |"
+                f"{'PASS' if pct_ok else 'FAIL'} | Seats | "
+                f"{'PASS' if seats_ok else 'FAIL'} | D'Hondt demo | OK |"
             )
 
         sections.append("\n## Summary\n")
-        sections.append("| Municipality | Turnout | | Votes | | mapa_2 % | | D'Hondt | |")
-        sections.append("|--------------|---------|--|-------|--|----------|--|---------|--|")
+        sections.append(
+            "| Municipality | Turnout | | Votes | | mapa_2 % | | Seats | | D'Hondt demo | |"
+        )
+        sections.append("|--------------|---------|--|-------|--|----------|--|-------|--|--------------|--|")
         sections.extend(summary_rows)
 
         sections.append("\n## Notes\n")
         sections.append(
             "- **Lisboa** uses CNE list codes (A, B, …) in mapa_1/mapa_2, not national acronyms (PS/PSD).\n"
-            "- **`seat_result`** table is still empty in MVP; seats come from **`allocate_seats_dhondt`** (same algorithm as course `ex10.sql`).\n"
+            "- **`seat_result`** loaded from CNE **mapa_2** `M` columns (`etl/pipeline/load_seats.py`); D'Hondt block uses fixed 7 seats for SQL demo only.\n"
             "- **mapa_2** = vote % published by CNE; parser must keep decimal points (unlike ETL `coerce_decimal` for integers).\n"
             f"- D'Hondt uses **{CM_SEATS}** seats in this script; smaller councils may have a different official seat total.\n"
             "- Regenerate: `python scripts/validate_samples_2021.py` from repo root (with DB env vars set).\n"

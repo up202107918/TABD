@@ -12,7 +12,7 @@ This document records how **Comissão Nacional de Eleições (CNE)** Excel resul
 
 - identifier and naming strategy (no shared numeric key in MVP);
 - files loaded vs used only for validation;
-- known gaps (islands geometry, `seat_result`, quality-issue logging);
+- known gaps (islands geometry, municipalities missing from mapa_1, quality-issue logging);
 - post-load checks and how to reproduce them.
 
 ---
@@ -49,7 +49,7 @@ This document records how **Comissão Nacional de Eleições (CNE)** Excel resul
 
 | File | Why skipped in load | How we use it |
 |------|---------------------|---------------|
-| **`mapa_2_perc_mandatos.xlsx`** | Vote counts and valid votes already in `mapa_1`; percentages are derived in DB | Cross-check **vote %** vs DB (`scripts/validate_samples_2021.py`); **not** written to `operational.seat_result` |
+| **`mapa_2_perc_mandatos.xlsx`** | Vote % (`%` columns) + **official seat counts** (`M` columns) per list | Vote % cross-check in validation; **seats** → `operational.seat_result` via `etl/pipeline/load_seats.py` |
 | **`mapa_3_eleitos.xlsx`** | Elected persons list; out of MVP aggregate scope | Not used |
 | **`*.ods`** | Pipeline reads `.xls` / `.xlsx` only | Reference copies in ZIP |
 
@@ -61,11 +61,11 @@ This document records how **Comissão Nacional de Eleições (CNE)** Excel resul
 | **In database** | `vote_result.votes`; `turnout.*` | Not stored; % recomputed as `votes / sum(votes)` per municipality |
 | **Parsing pitfall** | `coerce_integer` strips `.` (correct for vote counts) | Must **not** use `coerce_decimal` from ETL for % — it breaks decimals (documented in validation script) |
 | **Party identifiers** | Column headers → acronyms via `party_code_to_acronym` / `PARTY_MAPPING` | Same list codes (e.g. Lisboa: **A**, **B**, not national PS/PSD) |
-| **Mandates** | Not loaded into `seat_result` | Official mandate %; mandates validated via SQL `allocate_seats_dhondt` (7 seats in sample script) |
+| **Mandates** | Loaded into `seat_result` from mapa_2 `M` columns | `allocation_method = 'CNE mapa_2'`; `total_seats_available` = sum of M per municipality |
 
-**Reconciliation outcome (samples):** For Lisboa, Porto, and Barrancos, `mapa_1` votes and turnout match DB **0 mismatches**; `mapa_2` vote % match DB **0 mismatches**. See [etl/docs/validation_samples_2021.md](../etl/docs/validation_samples_2021.md).
+**Reconciliation outcome (samples):** For Lisboa, Porto, and Barrancos, `mapa_1` votes and turnout match DB **0 mismatches**; `mapa_2` vote % and **seat counts** match `seat_result` **0 mismatches**. See [etl/docs/validation_samples_2021.md](../etl/docs/validation_samples_2021.md).
 
-**`seat_result`:** Table exists in the operational model but remains **empty** after ETL. Warehouse `seats_obtained` is therefore 0; mandate analysis uses the **D'Hondt function** at query time. Planned improvement: populate from `mapa_2` / `mapa_3` or post-load `allocate_seats_dhondt` (see [todo.md](../todo.md)).
+**Coverage:** ~308 municipalities in mapa_2; seat rows are inserted only where the municipality exists in `operational.municipality` (~258 loaded from mapa_1). ~50 concelhos present in mapa_2 but missing from mapa_1 extract have no `seat_result` (document as data gap, not allocation bug).
 
 ---
 
@@ -214,7 +214,7 @@ SELECT status, rows_staged, rows_loaded FROM staging.stg_etl_run_log ORDER BY ru
 ## 11. Known limitations (honest scope for §5.2)
 
 1. **No CAOP↔CNE numeric key** — matching by normalized district/municipality names only.  
-2. **`mapa_2` / `mapa_3` not loaded** — percentages and elected officials validated externally; mandates not in `seat_result`.  
+2. **`mapa_3` not loaded** — elected officials list out of scope; seats come from mapa_2 `M`, not mapa_3.  
 3. **`mapa_anexo` not loaded** — turnout taken from `mapa_1`.  
 4. **Islands** — likely missing polygons with default GeoJSON fallback.  
 5. **`stg_data_quality_issues`** — not written by pipeline yet.  

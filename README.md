@@ -167,7 +167,8 @@ Functions, PL/pgSQL, and triggers in `sql/03_functions_triggers.sql` (e.g. D'Hon
 ## Known MVP limitations
 
 - Single configured dataset: **2021** local elections, organ **CM**, **municipality** level (no parishes in ETL).  
-- **seat_result** and **warehouse agg_*** not loaded.  
+- **warehouse agg_*** not populated after load.  
+- ~50 municipalities in CNE mapa_2 may be absent from mapa_1 ETL (no votes / seats in DB).  
 - CAOP fallback GeoJSON covers **continent**; islands may lack geometry until official shapefiles are added.  
 - No authentication; batch ETL only (not live election night).  
 

@@ -9,12 +9,17 @@ Dataset folder: `etl/data/2021al_mapa_oficial/`
 | `mapa_1_resultados.xlsx` | `mapa_I` | **Wide** (party columns) | `stg_election_results`, `stg_turnout_data` | Main results + turnout per row; CM rows only (~308 municipalities) |
 | `mapa_anexo.xlsx` | (varies) | Not loaded in MVP | — | Supplementary tables; revisit if turnout gaps found |
 
+## Files used for seats (not staging extract)
+
+| File | Use |
+|------|-----|
+| `mapa_2_perc_mandatos.xlsx` | Official CM seat counts (`M` columns) → `operational.seat_result` via `pipeline/load_seats.py` |
+
 ## Files skipped (MVP)
 
 | File | Reason |
 |------|--------|
-| `mapa_2_perc_mandatos.xlsx` | Mandate percentages; votes/mandates already in mapa_1 |
-| `mapa_3_eleitos.xlsx` | Elected officials list; not needed for vote aggregates |
+| `mapa_3_eleitos.xlsx` | Elected officials list; not loaded into aggregates |
 | `*.ods` | Not read by pipeline (Excel only) |
 
 ## `mapa_1` layout (wide)

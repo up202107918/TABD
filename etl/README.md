@@ -59,6 +59,7 @@ Excel (mapa_1, mapa_anexo)
     → pipeline/transform_operational.py → operational.* (CM, concelho)
     → pipeline/transform_geo.py    → district/municipality geometries (CAOP)
     → pipeline/load_warehouse.py   → warehouse dimensions + fact_* 
+    → pipeline/load_seats.py       → operational.seat_result (CNE mapa_2)
     → pipeline/post_load.py        → party_municipality_summary
 ```
 
@@ -88,10 +89,11 @@ python run_etl.py --dataset aut_2017 --mode full
 python run_etl.py --dataset aut_2021 --mode full
 ```
 
+**Seats:** `mapa_2` `M` columns → `operational.seat_result` (see [../docs/etl_reconciliation.md](../docs/etl_reconciliation.md)).
+
 **Skipped in MVP (by design):**
 
-- `mapa_2` / `mapa_3` not loaded by ETL (used only in validation script) — see [docs/source_inventory_2021.md](docs/source_inventory_2021.md)
-- `seat_result` population (table empty; warehouse `seats_obtained` = 0)
+- `mapa_3` not loaded — see [docs/source_inventory_2021.md](docs/source_inventory_2021.md)
 - `warehouse.agg_*` pre-aggregation tables (not filled after truncate)
 
 ---

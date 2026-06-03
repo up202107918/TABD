@@ -1,7 +1,7 @@
 # Validation samples — Autárquicas 2021 (CM)
 
-Generated: 2026-06-03 13:09 UTC  
-Sources: `mapa_1_resultados.xlsx` (votes/turnout), `mapa_2_perc_mandatos.xlsx` (vote %), PostgreSQL `operational.*`, function `allocate_seats_dhondt(..., 7)`.
+Generated: 2026-06-03 15:42 UTC  
+Sources: `mapa_1_resultados.xlsx` (votes/turnout), `mapa_2_perc_mandatos.xlsx` (vote % + seat counts), `operational.seat_result`, function `allocate_seats_dhondt(..., 7)` (demo only).
 
 ## Sample municipalities
 
@@ -47,7 +47,18 @@ Valid votes check: sum ≤ valid → CNE True, DB True
 | PDR | 319 | 319 | OK |
 | VP | 1016 | 1016 | OK |
 
-### D'Hondt seats (`allocate_seats_dhondt`, 7 seats — ex10.sql pattern)
+### Seats (mapa_2 M columns vs `seat_result`)
+
+**Seat mismatches:** 0 / 4 parties · CNE council total: **17** seats
+
+| Party | mapa_2 M | DB `seat_result` | Status |
+|-------|----------|------------------|--------|
+| A | 7 | 7 | OK |
+| B | 7 | 7 | OK |
+| BE | 1 | 1 | OK |
+| CDU | 2 | 2 | OK |
+
+### D'Hondt demo (`allocate_seats_dhondt`, 7 seats — ex10.sql pattern)
 
 | Party | Votes | Seats |
 |-------|-------|-------|
@@ -85,58 +96,73 @@ District (CNE row): **PORTO** · DB: **Porto**
 
 | Metric | CNE mapa_1 | DB `turnout` | Match |
 |--------|------------|--------------|-------|
-| Registered | 207129 | 207129 | OK |
-| Votes cast | 101179 | 101179 | OK |
-| Valid votes | 97796 | 97796 | OK |
-| Blank | 2253 | 2253 | OK |
-| Null | 1130 | 1130 | OK |
+| Registered | 207129 | 74295 | **MISMATCH** |
+| Votes cast | 101179 | 49451 | **MISMATCH** |
+| Valid votes | 97796 | 47671 | **MISMATCH** |
+| Blank | 2253 | 960 | **MISMATCH** |
+| Null | 1130 | 820 | **MISMATCH** |
 
-Sum party votes: CNE **97796** · DB **97796** · OK  
+Sum party votes: CNE **97796** · DB **47671** · **MISMATCH**  
 Valid votes check: sum ≤ valid → CNE True, DB True
 
 ### Votes by party/list
 
-**Vote mismatches:** 0 / 11 parties
+**Vote mismatches:** 13 / 13 parties
 
 | Party | CNE | DB | Status |
 |-------|-----|-----|--------|
-| BE | 6321 | 6321 | OK |
-| CDU | 7610 | 7610 | OK |
-| CH | 2983 | 2983 | OK |
-| D | 41213 | 41213 | OK |
-| E | 79 | 79 | OK |
-| L | 461 | 461 | OK |
-| PAN | 2821 | 2821 | OK |
-| PPM | 211 | 211 | OK |
-| PS | 18192 | 18192 | OK |
-| PSD | 17481 | 17481 | OK |
-| VP | 424 | 424 | OK |
+| A | — | 1325 | **MISMATCH** |
+| B | — | 12663 | **MISMATCH** |
+| BE | 6321 | 681 | **MISMATCH** |
+| CDU | 7610 | 1166 | **MISMATCH** |
+| CH | 2983 | 821 | **MISMATCH** |
+| D | 41213 | — | **MISMATCH** |
+| E | 79 | — | **MISMATCH** |
+| L | 461 | — | **MISMATCH** |
+| PAN | 2821 | — | **MISMATCH** |
+| PPM | 211 | — | **MISMATCH** |
+| PS | 18192 | 31015 | **MISMATCH** |
+| PSD | 17481 | — | **MISMATCH** |
+| VP | 424 | — | **MISMATCH** |
 
-### D'Hondt seats (`allocate_seats_dhondt`, 7 seats — ex10.sql pattern)
+### Seats (mapa_2 M columns vs `seat_result`)
+
+**Seat mismatches:** 2 / 5 parties · CNE council total: **13** seats
+
+| Party | mapa_2 M | DB `seat_result` | Status |
+|-------|----------|------------------|--------|
+| BE | 1 | 1 | OK |
+| CDU | 1 | 1 | OK |
+| D | 6 | — | **MISMATCH** |
+| PS | 3 | 3 | OK |
+| PSD | 2 | — | **MISMATCH** |
+
+### D'Hondt demo (`allocate_seats_dhondt`, 7 seats — ex10.sql pattern)
 
 | Party | Votes | Seats |
 |-------|-------|-------|
-| D | 41213 | 4 |
-| PS | 18192 | 2 |
-| PSD | 17481 | 1 |
+| PS | 31015 | 5 |
+| B | 12663 | 2 |
 
 ### mapa_2 vote % vs DB (derived from valid votes)
 
-**mapa_2 % mismatches:** 0 / 11 parties
+**mapa_2 % mismatches:** 13 / 13 parties
 
 | Party | mapa_2 % | DB vote % | Status |
 |-------|----------|-----------|--------|
-| BE | 6.46% | 6.46% | OK |
-| CDU | 7.78% | 7.78% | OK |
-| CH | 3.05% | 3.05% | OK |
-| D | 42.14% | 42.14% | OK |
-| E | 0.08% | 0.08% | OK |
-| L | 0.47% | 0.47% | OK |
-| PAN | 2.88% | 2.88% | OK |
-| PPM | 0.22% | 0.22% | OK |
-| PS | 18.6% | 18.6% | OK |
-| PSD | 17.87% | 17.87% | OK |
-| VP | 0.43% | 0.43% | OK |
+| A | — | 2.78% | **missing in mapa_2** |
+| B | — | 26.56% | **missing in mapa_2** |
+| BE | 6.46% | 1.43% | **MISMATCH** |
+| CDU | 7.78% | 2.45% | **MISMATCH** |
+| CH | 3.05% | 1.72% | **MISMATCH** |
+| D | 42.14% | —% | **MISMATCH** |
+| E | 0.08% | —% | **MISMATCH** |
+| L | 0.47% | —% | **MISMATCH** |
+| PAN | 2.88% | —% | **MISMATCH** |
+| PPM | 0.22% | —% | **MISMATCH** |
+| PS | 18.6% | 65.06% | **MISMATCH** |
+| PSD | 17.87% | —% | **MISMATCH** |
+| VP | 0.43% | —% | **MISMATCH** |
 
 **Top quotients (`demonstrate_dhondt`):** see `sql/07_demo_queries.sql`.
 
@@ -168,7 +194,17 @@ Valid votes check: sum ≤ valid → CNE True, DB True
 | CDU | 465 | 465 | OK |
 | PS | 348 | 348 | OK |
 
-### D'Hondt seats (`allocate_seats_dhondt`, 7 seats — ex10.sql pattern)
+### Seats (mapa_2 M columns vs `seat_result`)
+
+**Seat mismatches:** 0 / 3 parties · CNE council total: **5** seats
+
+| Party | mapa_2 M | DB `seat_result` | Status |
+|-------|----------|------------------|--------|
+| A | 1 | 1 | OK |
+| CDU | 2 | 2 | OK |
+| PS | 2 | 2 | OK |
+
+### D'Hondt demo (`allocate_seats_dhondt`, 7 seats — ex10.sql pattern)
 
 | Party | Votes | Seats |
 |-------|-------|-------|
@@ -191,16 +227,16 @@ Valid votes check: sum ≤ valid → CNE True, DB True
 
 ## Summary
 
-| Municipality | Turnout | | Votes | | mapa_2 % | | D'Hondt | |
-|--------------|---------|--|-------|--|----------|--|---------|--|
-| Lisboa | Turnout | PASS | Votes | PASS | mapa_2 % | PASS | D'Hondt | OK |
-| Porto | Turnout | PASS | Votes | PASS | mapa_2 % | PASS | D'Hondt | OK |
-| Barrancos | Turnout | PASS | Votes | PASS | mapa_2 % | PASS | D'Hondt | OK |
+| Municipality | Turnout | | Votes | | mapa_2 % | | Seats | | D'Hondt demo | |
+|--------------|---------|--|-------|--|----------|--|-------|--|--------------|--|
+| Lisboa | Turnout | PASS | Votes | PASS | mapa_2 % | PASS | Seats | PASS | D'Hondt demo | OK |
+| Porto | Turnout | FAIL | Votes | FAIL | mapa_2 % | FAIL | Seats | FAIL | D'Hondt demo | OK |
+| Barrancos | Turnout | PASS | Votes | PASS | mapa_2 % | PASS | Seats | PASS | D'Hondt demo | OK |
 
 ## Notes
 
 - **Lisboa** uses CNE list codes (A, B, …) in mapa_1/mapa_2, not national acronyms (PS/PSD).
-- **`seat_result`** table is still empty in MVP; seats come from **`allocate_seats_dhondt`** (same algorithm as course `ex10.sql`).
+- **`seat_result`** loaded from CNE **mapa_2** `M` columns (`etl/pipeline/load_seats.py`); D'Hondt block uses fixed 7 seats for SQL demo only.
 - **mapa_2** = vote % published by CNE; parser must keep decimal points (unlike ETL `coerce_decimal` for integers).
 - D'Hondt uses **7** seats in this script; smaller councils may have a different official seat total.
 - Regenerate: `python scripts/validate_samples_2021.py` from repo root (with DB env vars set).

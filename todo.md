@@ -57,7 +57,7 @@ Required by the assignment or Moodle submission. Without these, the project is i
 | `[x]` | **Rerunnable** pipeline (`run_etl.py`, run log) | §5.2 |
 | `[x]` | **Warehouse**: ≥1 fact + multiple dimensions populated | §5.2, §6 |
 | `[x]` | **`docs/etl_reconciliation.md`** — CNE ↔ CAOP, mapa_1/2, islands, validation | §4, §5.2 |
-| `[ ]` | **`seat_result` populated** for CM (mandates from `mapa_2` or documented pipeline using `allocate_seats_dhondt` + official check) | §5.1 minimum model lists seat results |
+| `[x]` | **`seat_result` populated** for CM from CNE mapa_2 `M` columns (`load_seats.py`) | §5.1 minimum model lists seat results |
 | `[x]` | **Validate subset vs CNE** (Lisboa, Porto, Barrancos) — `etl/docs/validation_samples_2021.md` | §9 good practice |
 | `[~]` | End-to-end demo script: schemas → `download_caop` → `run_etl.py --mode full` → smoke SQL | §9 reproducibility |
 
@@ -66,7 +66,7 @@ Required by the assignment or Moodle submission. Without these, the project is i
 | Status | Task | PDF / rubric |
 |--------|------|----------------|
 | `[x]` | Normalized schema: elections, organs, territories, parties, coalitions, candidacies, votes, turnout | §5.1 |
-| `[~]` | **seat_result** rows linked to candidacies (see 1.2) | §5.1 |
+| `[x]` | **seat_result** rows linked to candidacies (mapa_2 → ETL) | §5.1 |
 | `[x]` | PostGIS geometries on district + municipality | §5.5 |
 | `[ ]` | Report explains **keys, constraints, indexes** (why each important index exists) | §5.1 |
 | `[x]` | Model supports territorial drill-down (district → municipality) | §5.1 |
@@ -147,7 +147,7 @@ Not strictly blocking minimum scope, but strong impact on grade (rubric) and pre
 | `[ ]` | Map **AJAX**: select district on home map → update side panel table/chart without leaving page | §5.6 interaction (safer than navigation-only) |
 | `[ ]` | Analytics dashboard reads **`warehouse`** facts (not only operational) | Shows star schema in app |
 | `[ ]` | Pre-select municipality in navbar on municipality page | UX |
-| `[ ]` | Hide or fix **seats** charts when `seat_result` empty | Avoid misleading zeros |
+| `[x]` | **Seats** charts use populated `seat_result` (re-run ETL after pull) | Avoid misleading zeros |
 
 ### 2.4 Documentation & defence
 

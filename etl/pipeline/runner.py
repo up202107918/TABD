@@ -9,6 +9,7 @@ from config import ETL_CONFIG, get_dataset_config, get_dataset_dirs
 
 from pipeline.db import connect
 from pipeline.extract import run_extract
+from pipeline.load_seats import run_load_seat_results
 from pipeline.load_warehouse import run_load_warehouse
 from pipeline.post_load import run_post_load
 from pipeline.transform_geo import run_transform_geo
@@ -117,6 +118,9 @@ def run_pipeline(dataset_key: str, mode: str = MODE_FULL) -> None:
             stats['rows_loaded'] = stats.get('rows_loaded', 0) + geo_stats.get(
                 'districts_geo', 0
             ) + geo_stats.get('municipalities_geo', 0)
+            seat_stats = run_load_seat_results(conn, dataset_key)
+            stats['seat_rows_inserted'] = seat_stats.get('seat_rows_inserted', 0)
+            stats['seat_result_total'] = seat_stats.get('seat_result_total', 0)
             if mode == MODE_FULL:
                 wh_stats = run_load_warehouse(conn, dataset_key)
                 stats['rows_loaded'] += wh_stats.get('warehouse_facts', 0)
