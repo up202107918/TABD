@@ -42,7 +42,25 @@ SELECT election_year, municipality_name, district_name, organ_name, total_votes,
 FROM vw_municipality_summary
 WHERE municipality_name = 'Lisboa';
 
-\echo '=== sql/03: allocate_seats_dhondt (Lisboa CM, 7 seats) ==='
+\echo '=== operational.seat_result (Lisboa CM, from CNE mapa_2) ==='
+SELECT COALESCE(p.party_acronym, co.coalition_acronym) AS party,
+       vr.votes_obtained,
+       sr.seats_obtained,
+       sr.total_seats_available,
+       sr.allocation_method
+FROM candidacy c
+JOIN vote_result vr ON vr.candidacy_id = c.candidacy_id
+LEFT JOIN seat_result sr ON sr.candidacy_id = c.candidacy_id
+LEFT JOIN party p ON c.party_id = p.party_id
+LEFT JOIN coalition co ON c.coalition_id = co.coalition_id
+JOIN municipality m ON m.municipality_id = c.municipality_id
+WHERE m.municipality_name = 'Lisboa'
+  AND c.organ_id = (SELECT organ_id FROM electoral_organ WHERE organ_code = 'CM')
+  AND c.election_id = (SELECT election_id FROM election WHERE election_year = 2021 LIMIT 1)
+  AND COALESCE(sr.seats_obtained, 0) > 0
+ORDER BY sr.seats_obtained DESC, vr.votes_obtained DESC;
+
+\echo '=== sql/03: allocate_seats_dhondt (Lisboa CM, 7 seats — demo; council has 17) ==='
 SELECT party_name, votes, seats_allocated
 FROM allocate_seats_dhondt(
     (SELECT election_id FROM election WHERE election_year = 2021 LIMIT 1),

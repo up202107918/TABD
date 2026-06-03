@@ -13,9 +13,15 @@ psql -U postgres -h localhost -d election_analytics -v ON_ERROR_STOP=1 -f sql/04
 # 2) Run sample queries (all sections)
 psql -U postgres -h localhost -d election_analytics -v ON_ERROR_STOP=1 -f sql/07_demo_queries.sql -o docs/sql_outputs/demo_results.txt
 
-# Or use the helper script:
+# Recommended — applies sql/04 + runs demos into demo_results.txt:
+$env:DB_NAME="election_analytics"
+$env:DB_USER="postgres"
+$env:DB_PASSWORD="your_password"
+$env:PGCLIENTENCODING="UTF8"
 .\.venv\Scripts\python.exe scripts\run_sql_demos.py
 ```
+
+After a full ETL reload or `seat_result` load, always re-run the script so `demo_results.txt` reflects current data.
 
 ## Files
 
