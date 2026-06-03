@@ -37,8 +37,12 @@ etl/data/caop/**/*.prj
 !etl/data/processed/.gitkeep
 !etl/data/logs/.gitkeep
 
-# Local setup notes (may contain DB passwords)
+# Local setup notes / debug scratch (may contain DB passwords)
 tmp.txt
+tmp_*.txt
+
+# Regenerated locally (see docs/sql_outputs/README.md)
+docs/sql_outputs/_apply_log.txt
 
 # IDE
 .vscode/

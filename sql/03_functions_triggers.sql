@@ -198,7 +198,8 @@ COMMENT ON VIEW vw_municipality_summary IS
 -- PL/pgSQL ROUTINES
 -- ============================================================================
 
--- PL/pgSQL Routine 1: D'Hondt Method for Seat Allocation
+-- PL/pgSQL Routine 1: D'Hondt seat allocation (same pattern as course ex10.sql:
+-- divisors CTE, votes/divisor quotients, top-N quotients, COUNT per list)
 CREATE OR REPLACE FUNCTION allocate_seats_dhondt(
     p_election_id INTEGER,
     p_organ_id INTEGER,
@@ -210,88 +211,54 @@ CREATE OR REPLACE FUNCTION allocate_seats_dhondt(
     votes INTEGER,
     seats_allocated INTEGER
 ) AS $$
-DECLARE
-    v_candidacy RECORD;
-    v_quotient NUMERIC;
-    v_max_quotient NUMERIC;
-    v_winner_candidacy_id INTEGER;
-    v_seats_remaining INTEGER := p_total_seats;
-    v_temp_seats JSONB := '{}'::JSONB;
 BEGIN
-    -- Initialize seat counts for all candidacies
-    FOR v_candidacy IN 
-        SELECT c.candidacy_id, vr.votes_obtained
+    RETURN QUERY
+    WITH party_votes AS (
+        SELECT
+            c.candidacy_id,
+            COALESCE(p.party_acronym, co.coalition_acronym)::VARCHAR AS party_name,
+            vr.votes_obtained AS votes
         FROM candidacy c
         JOIN vote_result vr ON c.candidacy_id = vr.candidacy_id
+        LEFT JOIN party p ON c.party_id = p.party_id
+        LEFT JOIN coalition co ON c.coalition_id = co.coalition_id
         WHERE c.election_id = p_election_id
             AND c.organ_id = p_organ_id
             AND c.municipality_id = p_municipality_id
             AND vr.votes_obtained > 0
-    LOOP
-        v_temp_seats := jsonb_set(v_temp_seats, 
-                                  ARRAY[v_candidacy.candidacy_id::TEXT], 
-                                  '0'::JSONB);
-    END LOOP;
-    
-    -- Allocate seats one by one using D'Hondt method
-    WHILE v_seats_remaining > 0 LOOP
-        v_max_quotient := 0;
-        v_winner_candidacy_id := NULL;
-        
-        -- Find candidacy with highest quotient
-        FOR v_candidacy IN 
-            SELECT c.candidacy_id, vr.votes_obtained
-            FROM candidacy c
-            JOIN vote_result vr ON c.candidacy_id = vr.candidacy_id
-            WHERE c.election_id = p_election_id
-                AND c.organ_id = p_organ_id
-                AND c.municipality_id = p_municipality_id
-                AND vr.votes_obtained > 0
-        LOOP
-            -- Calculate quotient: votes / (seats_won + 1)
-            v_quotient := v_candidacy.votes_obtained::NUMERIC / 
-                         ((v_temp_seats->>v_candidacy.candidacy_id::TEXT)::INTEGER + 1);
-            
-            IF v_quotient > v_max_quotient THEN
-                v_max_quotient := v_quotient;
-                v_winner_candidacy_id := v_candidacy.candidacy_id;
-            END IF;
-        END LOOP;
-        
-        -- Allocate seat to winner
-        IF v_winner_candidacy_id IS NOT NULL THEN
-            v_temp_seats := jsonb_set(
-                v_temp_seats,
-                ARRAY[v_winner_candidacy_id::TEXT],
-                ((v_temp_seats->>v_winner_candidacy_id::TEXT)::INTEGER + 1)::TEXT::JSONB
-            );
-            v_seats_remaining := v_seats_remaining - 1;
-        ELSE
-            -- No more candidates to allocate to
-            EXIT;
-        END IF;
-    END LOOP;
-    
-    -- Return results
-    RETURN QUERY
-    SELECT 
-        c.candidacy_id,
-        COALESCE(p.party_name, co.coalition_name)::VARCHAR as party_name,
-        vr.votes_obtained::INTEGER,
-        (v_temp_seats->>c.candidacy_id::TEXT)::INTEGER as seats_allocated
-    FROM candidacy c
-    JOIN vote_result vr ON c.candidacy_id = vr.candidacy_id
-    LEFT JOIN party p ON c.party_id = p.party_id
-    LEFT JOIN coalition co ON c.coalition_id = co.coalition_id
-    WHERE c.election_id = p_election_id
-        AND c.organ_id = p_organ_id
-        AND c.municipality_id = p_municipality_id
-    ORDER BY seats_allocated DESC, vr.votes_obtained DESC;
+    ),
+    divisors AS (
+        SELECT generate_series(1, p_total_seats) AS divisor
+    ),
+    quotients AS (
+        SELECT
+            pv.candidacy_id,
+            pv.party_name,
+            pv.votes,
+            pv.votes::NUMERIC / d.divisor AS quotient
+        FROM party_votes pv
+        CROSS JOIN divisors d
+    ),
+    top_quotients AS (
+        SELECT q.candidacy_id
+        FROM quotients q
+        ORDER BY q.quotient DESC, q.candidacy_id
+        LIMIT p_total_seats
+    )
+    SELECT
+        pv.candidacy_id,
+        pv.party_name,
+        pv.votes::INTEGER,
+        COUNT(tq.candidacy_id)::INTEGER AS seats_allocated
+    FROM party_votes pv
+    LEFT JOIN top_quotients tq ON tq.candidacy_id = pv.candidacy_id
+    GROUP BY pv.candidacy_id, pv.party_name, pv.votes
+    ORDER BY seats_allocated DESC, pv.votes DESC;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql STABLE;
 
-COMMENT ON FUNCTION allocate_seats_dhondt IS 
-'Allocate seats using D''Hondt method for a specific electoral contest';
+COMMENT ON FUNCTION allocate_seats_dhondt IS
+'D''Hondt: generate quotients votes/1..votes/N, take top N (ex10.sql pattern), count seats per candidacy';
 
 -- PL/pgSQL Routine 2: Update summary tables after result changes
 CREATE OR REPLACE PROCEDURE refresh_party_municipality_summary(

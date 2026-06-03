@@ -114,12 +114,11 @@ WHERE party = 'PS'
 ORDER BY total_votes DESC
 LIMIT 10;
 
-\echo '=== sql/04: demonstrate_dhondt (Lisboa, iteration sample) ==='
-SELECT iteration, party, votes, seats_so_far, quotient, gets_seat
+\echo '=== sql/04: demonstrate_dhondt (Lisboa, top 7 quotients — ex10 pattern) ==='
+SELECT seat_rank, party, votes, divisor, quotient, gets_seat
 FROM demonstrate_dhondt('Lisboa', 2021, 7)
-WHERE iteration <= 3 OR gets_seat
-ORDER BY iteration, quotient DESC
-LIMIT 25;
+WHERE gets_seat
+ORDER BY seat_rank;
 
 \echo '=== triggers: audit_log row count ==='
 SELECT COUNT(*) AS audit_log_rows FROM audit_log;

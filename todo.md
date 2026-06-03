@@ -58,7 +58,7 @@ Required by the assignment or Moodle submission. Without these, the project is i
 | `[x]` | **Warehouse**: ≥1 fact + multiple dimensions populated | §5.2, §6 |
 | `[~]` | **`docs/etl_reconciliation.md`** (see above) — justify CAOP 2021 vs fallback GeoJSON | §4, §5.2 |
 | `[ ]` | **`seat_result` populated** for CM (mandates from `mapa_2` or documented pipeline using `allocate_seats_dhondt` + official check) | §5.1 minimum model lists seat results |
-| `[ ]` | **Validate subset vs CNE** (e.g. 3 municipalities: Lisboa, Porto, + one small) — record in `etl/docs/validation_samples_2021.md` | §9 good practice |
+| `[x]` | **Validate subset vs CNE** (Lisboa, Porto, Barrancos) — `etl/docs/validation_samples_2021.md` | §9 good practice |
 | `[~]` | End-to-end demo script: schemas → `download_caop` → `run_etl.py --mode full` → smoke SQL | §9 reproducibility |
 
 ### 1.3 Operational model (§5.1, rubric 20%)

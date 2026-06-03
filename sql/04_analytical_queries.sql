@@ -333,8 +333,7 @@ COMMENT ON VIEW analytical_query_6_advanced_aggregates IS
 -- D'HONDT METHOD IMPLEMENTATION (as analytical query)
 -- ============================================================================
 
--- Query 7: Step-by-step D'Hondt calculation for a specific municipality
--- This demonstrates the algorithm visually
+-- Query 7: D'Hondt quotients ranked (course ex10.sql pattern — divisors + top-N)
 DROP FUNCTION IF EXISTS demonstrate_dhondt(character varying, integer);
 DROP FUNCTION IF EXISTS demonstrate_dhondt(character varying, integer, integer);
 
@@ -343,10 +342,10 @@ CREATE OR REPLACE FUNCTION demonstrate_dhondt(
     p_election_year INTEGER DEFAULT NULL,
     p_total_seats INTEGER DEFAULT 7
 ) RETURNS TABLE (
-    iteration INTEGER,
+    seat_rank INTEGER,
     party VARCHAR,
     votes INTEGER,
-    seats_so_far INTEGER,
+    divisor INTEGER,
     quotient NUMERIC,
     gets_seat BOOLEAN
 ) AS $$
@@ -355,77 +354,74 @@ DECLARE
     v_election_id INTEGER;
     v_organ_id INTEGER;
 BEGIN
-    -- Get IDs
     SELECT m.municipality_id INTO v_municipality_id
-    FROM municipality m WHERE m.municipality_name = p_municipality_name LIMIT 1;
-    
+    FROM municipality m
+    WHERE m.municipality_name = p_municipality_name
+    LIMIT 1;
+
     SELECT election_id INTO v_election_id
     FROM election
     WHERE election_type_id = (SELECT election_type_id FROM election_type WHERE type_code = 'AUT')
         AND (p_election_year IS NULL OR election_year = p_election_year)
     ORDER BY election_year DESC
     LIMIT 1;
-    
-    SELECT organ_id INTO v_organ_id
-    FROM electoral_organ WHERE organ_code = 'CM';
-    
-    -- Create temp table for calculation
-    DROP TABLE IF EXISTS temp_dhondt;
-    CREATE TEMP TABLE temp_dhondt AS
-    SELECT 
-        COALESCE(p.party_acronym, co.coalition_acronym) as party_name,
-        vr.votes_obtained as votes,
-        0 as seats
-    FROM candidacy c
-    LEFT JOIN party p ON c.party_id = p.party_id
-    LEFT JOIN coalition co ON c.coalition_id = co.coalition_id
-    JOIN vote_result vr ON c.candidacy_id = vr.candidacy_id
-    WHERE c.election_id = v_election_id
-        AND c.organ_id = v_organ_id
-        AND c.municipality_id = v_municipality_id
-        AND vr.votes_obtained > 0;
-    
-    -- Allocate seats iteratively
-    FOR i IN 1..p_total_seats LOOP
-        RETURN QUERY
-        WITH quotients AS (
-            SELECT 
-                td.party_name,
-                td.votes AS party_votes,
-                td.seats AS party_seats,
-                td.votes::NUMERIC / (td.seats + 1) AS calc_quotient
-            FROM temp_dhondt td
-        ),
-        max_quotient AS (
-            SELECT MAX(calc_quotient) AS max_q FROM quotients
-        )
-        SELECT 
-            i AS iteration,
-            q.party_name::VARCHAR,
-            q.party_votes::INTEGER,
-            q.party_seats::INTEGER,
-            ROUND(q.calc_quotient, 2) AS quotient,
-            (q.calc_quotient = m.max_q) AS gets_seat
-        FROM quotients q, max_quotient m
-        ORDER BY q.calc_quotient DESC;
-        
-        -- Update seat count for winner
-        UPDATE temp_dhondt td
-        SET seats = td.seats + 1
-        WHERE td.party_name = (
-            SELECT inner_td.party_name 
-            FROM temp_dhondt inner_td
-            ORDER BY inner_td.votes::NUMERIC / (inner_td.seats + 1) DESC 
-            LIMIT 1
-        );
-    END LOOP;
-    
-    DROP TABLE temp_dhondt;
-END;
-$$ LANGUAGE plpgsql;
 
-COMMENT ON FUNCTION demonstrate_dhondt IS 
-'D''Hondt Method: Step-by-step demonstration of seat allocation process';
+    SELECT organ_id INTO v_organ_id
+    FROM electoral_organ
+    WHERE organ_code = 'CM';
+
+    RETURN QUERY
+    WITH party_votes AS (
+        SELECT
+            COALESCE(p.party_acronym, co.coalition_acronym)::VARCHAR AS party_name,
+            vr.votes_obtained AS votes,
+            c.candidacy_id
+        FROM candidacy c
+        JOIN vote_result vr ON c.candidacy_id = vr.candidacy_id
+        LEFT JOIN party p ON c.party_id = p.party_id
+        LEFT JOIN coalition co ON c.coalition_id = co.coalition_id
+        WHERE c.election_id = v_election_id
+            AND c.organ_id = v_organ_id
+            AND c.municipality_id = v_municipality_id
+            AND vr.votes_obtained > 0
+    ),
+    divisors AS (
+        SELECT generate_series(1, p_total_seats) AS divisor
+    ),
+    quotients AS (
+        SELECT
+            pv.party_name,
+            pv.votes,
+            d.divisor,
+            pv.votes::NUMERIC / d.divisor AS quotient,
+            pv.candidacy_id
+        FROM party_votes pv
+        CROSS JOIN divisors d
+    ),
+    ranked AS (
+        SELECT
+            ROW_NUMBER() OVER (ORDER BY q.quotient DESC, q.candidacy_id) AS seat_rank,
+            q.party_name,
+            q.votes,
+            q.divisor,
+            ROUND(q.quotient, 2) AS quotient,
+            q.candidacy_id
+        FROM quotients q
+    )
+    SELECT
+        r.seat_rank::INTEGER,
+        r.party_name::VARCHAR,
+        r.votes::INTEGER,
+        r.divisor::INTEGER,
+        r.quotient,
+        (r.seat_rank <= p_total_seats) AS gets_seat
+    FROM ranked r
+    ORDER BY r.seat_rank;
+END;
+$$ LANGUAGE plpgsql STABLE;
+
+COMMENT ON FUNCTION demonstrate_dhondt IS
+'D''Hondt demo: all votes/divisor quotients ranked; top p_total_seats rows win a seat (ex10.sql)';
 
 -- ============================================================================
 -- COMPLEX COMPARATIVE QUERIES

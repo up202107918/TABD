@@ -26,7 +26,7 @@ psql -U postgres -h localhost -d election_analytics -v ON_ERROR_STOP=1 -f sql/07
 
 ## What is demonstrated
 
-- **sql/03:** `calculate_vote_percentage`, `get_party_performance_in_municipality`, views `vw_*`, `allocate_seats_dhondt`, triggers (audit row count).
-- **sql/04:** Views `analytical_query_1`–`6`, `8`, function `demonstrate_dhondt`.
+- **sql/03:** `calculate_vote_percentage`, `get_party_performance_in_municipality`, views `vw_*`, `allocate_seats_dhondt` (D'Hondt = course **ex10.sql**: `divisors` + `quotients` + `LIMIT` + `COUNT`), triggers (audit row count).
+- **sql/04:** Views `analytical_query_1`–`6`, `8`, function `demonstrate_dhondt` (ranked quotients, same pattern).
 
 **Note:** CNE 2021 uses list codes (A, B, …) in Lisboa, not always national acronyms (PS/PSD). D'Hondt samples use 7 seats for CM as in the assignment demo.

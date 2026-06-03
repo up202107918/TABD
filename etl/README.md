@@ -79,9 +79,11 @@ Run metadata: `staging.stg_etl_run_log`.
 | Geometry | `data/caop/*.geojson` or `.shp` | `district.geometry`, `municipality.geometry` |
 | Warehouse | Operational join | `dim_*`, `fact_election_result`, `fact_turnout` |
 
+**Validation (post-load):** `python scripts/validate_samples_2021.py` → [docs/validation_samples_2021.md](docs/validation_samples_2021.md) (mapa_1 vs DB; mapa_2 vote %; D'Hondt ex10 pattern).
+
 **Skipped in MVP (by design):**
 
-- `mapa_2` / `mapa_3` (mandates / elected lists) — see [docs/source_inventory_2021.md](docs/source_inventory_2021.md)
+- `mapa_2` / `mapa_3` not loaded by ETL (used only in validation script) — see [docs/source_inventory_2021.md](docs/source_inventory_2021.md)
 - `seat_result` population (table empty; warehouse `seats_obtained` = 0)
 - `warehouse.agg_*` pre-aggregation tables (not filled after truncate)
 
