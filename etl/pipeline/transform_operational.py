@@ -271,15 +271,29 @@ def load_turnout(conn, election_id: int, organ_id: int, municipality_ids: Dict[T
             if not muni_id:
                 continue
             valid = row[4] if row[4] is not None else max(0, (row[2] or 0) - (row[5] or 0) - (row[6] or 0))
+            reg = row[2] or 0
+            vot = row[3]
+            turnout_pct = abstention_pct = blank_pct = null_pct = None
+            if reg > 0 and vot is not None:
+                turnout_pct = round(100.0 * vot / reg, 2)
+                abstention_pct = round(100.0 * (reg - vot) / reg, 2)
+            if vot and vot > 0:
+                blank_pct = round(100.0 * (row[5] or 0) / vot, 2)
+                null_pct = round(100.0 * (row[6] or 0) / vot, 2)
             cur.execute(
                 """
                 INSERT INTO operational.turnout (
                     election_id, organ_id, municipality_id,
-                    registered_voters, votes_cast, valid_votes, blank_votes, null_votes
+                    registered_voters, votes_cast, valid_votes, blank_votes, null_votes,
+                    turnout_percentage, abstention_percentage, blank_percentage, null_percentage
                 )
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
-                (election_id, organ_id, muni_id, row[2], row[3], valid, row[5] or 0, row[6] or 0),
+                (
+                    election_id, organ_id, muni_id, row[2], row[3], valid,
+                    row[5] or 0, row[6] or 0,
+                    turnout_pct, abstention_pct, blank_pct, null_pct,
+                ),
             )
             count += 1
     conn.commit()
@@ -422,6 +436,11 @@ def run_transform_operational(conn, dataset_key: str) -> Dict[str, int]:
     turnout_count = load_turnout(conn, election_id, organ_id, municipality_ids)
     results_count = load_results(conn, election_id, organ_id, municipality_ids)
     update_rankings(conn, election_id, organ_id)
+
+    with conn.cursor() as cur:
+        cur.execute('SELECT calculate_turnout_percentages()')
+        backfilled = cur.fetchone()[0]
+        logging.info('Turnout percentages backfilled: %s rows', backfilled)
 
     with conn.cursor() as cur:
         cur.execute('SET session_replication_role = DEFAULT')

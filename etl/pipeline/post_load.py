@@ -58,6 +58,10 @@ def run_post_load(conn, dataset_key: str) -> Dict[str, int]:
         )
         count = cur.fetchone()[0]
 
+        cur.execute('SELECT calculate_turnout_percentages()')
+        turnout_fixed = cur.fetchone()[0]
+        logging.info('Turnout percentages ensured: %s rows updated', turnout_fixed)
+
     conn.commit()
     logging.info('Refreshed party_municipality_summary: %s rows for election_id=%s', count, election_id)
     return {'summary_refreshed': count}

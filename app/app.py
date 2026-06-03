@@ -39,6 +39,17 @@ ORGAN_CM_SUBQUERY = (
     "SELECT organ_id FROM operational.electoral_organ WHERE organ_code = 'CM'"
 )
 
+# ETL bulk load skips triggers; compute % from raw counts when column is NULL.
+TURNOUT_PCT_EXPR = """
+COALESCE(
+    t.turnout_percentage,
+    CASE
+        WHEN t.registered_voters > 0 AND t.votes_cast IS NOT NULL
+        THEN ROUND(100.0 * t.votes_cast::NUMERIC / t.registered_voters, 2)
+        ELSE NULL
+    END
+)"""
+
 
 def get_db_connection():
     conn = psycopg2.connect(**DB_CONFIG)
@@ -181,18 +192,22 @@ def index():
                 (SELECT COUNT(DISTINCT COALESCE(c.party_id, c.coalition_id))
                  FROM operational.candidacy c
                  WHERE c.election_id = %s) AS total_parties,
-                (SELECT MAX(t.turnout_percentage) FROM operational.turnout t
-                 WHERE t.election_id = %s) AS max_turnout,
-                (SELECT MIN(t.turnout_percentage) FROM operational.turnout t
-                 WHERE t.election_id = %s AND t.turnout_percentage IS NOT NULL) AS min_turnout,
-                (SELECT ROUND(AVG(t.turnout_percentage), 2) FROM operational.turnout t
-                 WHERE t.election_id = %s) AS avg_turnout
+                (SELECT MAX({pct}) FROM operational.turnout t
+                 WHERE t.election_id = %s
+                   AND t.organ_id = ({organ})
+                   AND t.registered_voters > 0) AS max_turnout,
+                (SELECT MIN({pct}) FROM operational.turnout t
+                 WHERE t.election_id = %s
+                   AND t.organ_id = ({organ})
+                   AND t.registered_voters > 0) AS min_turnout,
+                (SELECT ROUND(AVG({pct}), 2) FROM operational.turnout t
+                 WHERE t.election_id = %s
+                   AND t.organ_id = ({organ})
+                   AND t.registered_voters > 0) AS avg_turnout
             FROM operational.district d
             JOIN operational.municipality m ON m.district_id = d.district_id
-            LEFT JOIN operational.turnout t ON t.municipality_id = m.municipality_id
-                AND t.election_id = %s
-            """,
-            (election_id, election_id, election_id, election_id, election_id),
+            """.format(pct=TURNOUT_PCT_EXPR, organ=ORGAN_CM_SUBQUERY),
+            (election_id, election_id, election_id, election_id),
         )
         stats = rows[0] if rows else {}
 
@@ -208,15 +223,16 @@ def districts():
             d.district_id,
             d.district_name,
             COUNT(DISTINCT m.municipality_id) AS municipalities_count,
-            ROUND(AVG(t.turnout_percentage), 2) AS avg_turnout
+            ROUND(AVG({pct}), 2) AS avg_turnout
         FROM operational.district d
         LEFT JOIN operational.municipality m ON d.district_id = m.district_id
         LEFT JOIN operational.turnout t ON m.municipality_id = t.municipality_id
             AND t.election_id = %s
+            AND t.organ_id = ({organ})
         GROUP BY d.district_id, d.district_name
         HAVING COUNT(DISTINCT m.municipality_id) > 0
         ORDER BY d.district_name
-        """,
+        """.format(pct=TURNOUT_PCT_EXPR, organ=ORGAN_CM_SUBQUERY),
         (election_id,),
     )
     return render_template('districts.html', districts=districts_list)
@@ -235,14 +251,15 @@ def district_detail(district_id: int):
     municipalities = execute_query(
         """
         SELECT m.municipality_id, m.municipality_name,
-               t.turnout_percentage, t.registered_voters, t.votes_cast
+               {pct} AS turnout_percentage,
+               t.registered_voters, t.votes_cast
         FROM operational.municipality m
         LEFT JOIN operational.turnout t ON m.municipality_id = t.municipality_id
             AND t.election_id = %s
             AND t.organ_id = ({organ})
         WHERE m.district_id = %s
         ORDER BY m.municipality_name
-        """.format(organ=ORGAN_CM_SUBQUERY),
+        """.format(pct=TURNOUT_PCT_EXPR, organ=ORGAN_CM_SUBQUERY),
         (election_id, district_id),
     )
 
@@ -279,7 +296,8 @@ def municipality_detail(municipality_id: int):
     municipality = execute_query(
         """
         SELECT m.municipality_id, m.municipality_name, d.district_name,
-               t.registered_voters, t.votes_cast, t.turnout_percentage,
+               t.registered_voters, t.votes_cast,
+               {pct} AS turnout_percentage,
                t.blank_percentage, t.null_percentage
         FROM operational.municipality m
         JOIN operational.district d ON m.district_id = d.district_id
@@ -288,7 +306,7 @@ def municipality_detail(municipality_id: int):
             AND t.organ_id = ({organ})
         WHERE m.municipality_id = %s
         LIMIT 1
-        """.format(organ=ORGAN_CM_SUBQUERY),
+        """.format(pct=TURNOUT_PCT_EXPR, organ=ORGAN_CM_SUBQUERY),
         (election_id, municipality_id),
     )
     if not municipality:
@@ -323,15 +341,16 @@ def api_map_districts():
         """
         SELECT d.district_id, d.district_name, d.district_code,
                ST_AsGeoJSON(d.geometry) AS geometry,
-               ROUND(AVG(t.turnout_percentage), 2) AS avg_turnout,
+               ROUND(AVG({pct}), 2) AS avg_turnout,
                COUNT(DISTINCT m.municipality_id) AS municipalities
         FROM operational.district d
         LEFT JOIN operational.municipality m ON d.district_id = m.district_id
         LEFT JOIN operational.turnout t ON m.municipality_id = t.municipality_id
             AND t.election_id = %s
+            AND t.organ_id = ({organ})
         WHERE d.geometry IS NOT NULL
         GROUP BY d.district_id, d.district_name, d.district_code, d.geometry
-        """,
+        """.format(pct=TURNOUT_PCT_EXPR, organ=ORGAN_CM_SUBQUERY),
         (election_id,),
     )
 
@@ -360,7 +379,7 @@ def api_map_municipalities(district_id: int):
         """
         SELECT m.municipality_id, m.municipality_name, m.municipality_code,
                ST_AsGeoJSON(m.geometry) AS geometry,
-               t.turnout_percentage,
+               {pct} AS turnout_percentage,
                (
                    SELECT COALESCE(p.party_acronym, co.coalition_acronym)
                    FROM operational.candidacy c
@@ -376,8 +395,9 @@ def api_map_municipalities(district_id: int):
         FROM operational.municipality m
         LEFT JOIN operational.turnout t ON m.municipality_id = t.municipality_id
             AND t.election_id = %s
+            AND t.organ_id = ({organ})
         WHERE m.district_id = %s AND m.geometry IS NOT NULL
-        """.format(organ=ORGAN_CM_SUBQUERY),
+        """.format(pct=TURNOUT_PCT_EXPR, organ=ORGAN_CM_SUBQUERY),
         (election_id, election_id, district_id),
     )
 
@@ -421,18 +441,13 @@ def _fetch_national_party_totals(election_id: int, min_votes: int = 500) -> Dict
 def _fetch_avg_turnout(election_id: int) -> Optional[float]:
     rows = execute_query(
         """
-        SELECT ROUND(AVG(
-            COALESCE(
-                t.turnout_percentage,
-                100.0 * t.votes_cast::NUMERIC / NULLIF(t.registered_voters, 0)
-            )
-        ), 2) AS avg_turnout
+        SELECT ROUND(AVG({pct}), 2) AS avg_turnout
         FROM operational.turnout t
         WHERE t.election_id = %s
           AND t.organ_id = ({organ})
           AND t.municipality_id IS NOT NULL
           AND t.registered_voters > 0
-        """.format(organ=ORGAN_CM_SUBQUERY),
+        """.format(pct=TURNOUT_PCT_EXPR, organ=ORGAN_CM_SUBQUERY),
         (election_id,),
     )
     if not rows or rows[0]['avg_turnout'] is None:
