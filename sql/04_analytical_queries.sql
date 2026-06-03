@@ -7,6 +7,14 @@
 
 SET search_path TO operational, warehouse, public;
 
+DROP VIEW IF EXISTS analytical_query_8_cross_district_comparison CASCADE;
+DROP VIEW IF EXISTS analytical_query_6_advanced_aggregates CASCADE;
+DROP VIEW IF EXISTS analytical_query_5_cube_multidimensional CASCADE;
+DROP VIEW IF EXISTS analytical_query_4_rollup_hierarchical CASCADE;
+DROP VIEW IF EXISTS analytical_query_3_turnout_analysis CASCADE;
+DROP VIEW IF EXISTS analytical_query_2_district_comparison CASCADE;
+DROP VIEW IF EXISTS analytical_query_1_party_rankings CASCADE;
+
 -- ============================================================================
 -- WINDOW FUNCTION QUERIES
 -- ============================================================================
@@ -327,6 +335,9 @@ COMMENT ON VIEW analytical_query_6_advanced_aggregates IS
 
 -- Query 7: Step-by-step D'Hondt calculation for a specific municipality
 -- This demonstrates the algorithm visually
+DROP FUNCTION IF EXISTS demonstrate_dhondt(character varying, integer);
+DROP FUNCTION IF EXISTS demonstrate_dhondt(character varying, integer, integer);
+
 CREATE OR REPLACE FUNCTION demonstrate_dhondt(
     p_municipality_name VARCHAR,
     p_election_year INTEGER DEFAULT NULL,
@@ -379,32 +390,32 @@ BEGIN
         RETURN QUERY
         WITH quotients AS (
             SELECT 
-                party_name,
-                votes,
-                seats,
-                votes::NUMERIC / (seats + 1) as calc_quotient
-            FROM temp_dhondt
+                td.party_name,
+                td.votes AS party_votes,
+                td.seats AS party_seats,
+                td.votes::NUMERIC / (td.seats + 1) AS calc_quotient
+            FROM temp_dhondt td
         ),
         max_quotient AS (
-            SELECT MAX(calc_quotient) as max_q FROM quotients
+            SELECT MAX(calc_quotient) AS max_q FROM quotients
         )
         SELECT 
-            i as iteration,
+            i AS iteration,
             q.party_name::VARCHAR,
-            q.votes::INTEGER,
-            q.seats::INTEGER,
-            ROUND(q.calc_quotient, 2) as quotient,
-            (q.calc_quotient = m.max_q) as gets_seat
+            q.party_votes::INTEGER,
+            q.party_seats::INTEGER,
+            ROUND(q.calc_quotient, 2) AS quotient,
+            (q.calc_quotient = m.max_q) AS gets_seat
         FROM quotients q, max_quotient m
         ORDER BY q.calc_quotient DESC;
         
         -- Update seat count for winner
-        UPDATE temp_dhondt
-        SET seats = seats + 1
-        WHERE party_name = (
-            SELECT party_name 
-            FROM temp_dhondt 
-            ORDER BY votes::NUMERIC / (seats + 1) DESC 
+        UPDATE temp_dhondt td
+        SET seats = td.seats + 1
+        WHERE td.party_name = (
+            SELECT inner_td.party_name 
+            FROM temp_dhondt inner_td
+            ORDER BY inner_td.votes::NUMERIC / (inner_td.seats + 1) DESC 
             LIMIT 1
         );
     END LOOP;

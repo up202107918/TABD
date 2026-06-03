@@ -16,7 +16,7 @@ Use this file as the single backlog. Technical ETL details: [etl/README.md](etl/
 | Operational + staging + warehouse DDL | `[x]` `sql/01`–`05` | `[~]` justify indexes in report |
 | ETL rerunnable (2021, CM, municipality) | `[x]` `run_etl.py --mode full` | `[~]` document + reconciliation doc |
 | SQL functions / PL/pgSQL / triggers | `[x]` `sql/03` | `[~]` demo on fresh DB |
-| Analytical SQL (D'Hondt, windows, ROLLUP, CUBE) | `[x]` `sql/04` | `[ ]` run & capture outputs for report |
+| Analytical SQL (D'Hondt, windows, ROLLUP, CUBE) | `[x]` `sql/04` | `[~]` run on DB; outputs in `docs/sql_outputs/demo_results.txt` |
 | PostGIS + Flask maps | `[x]` | `[~]` islands geometry gap |
 | Flask psycopg2 + selectors + tables + charts | `[x]` | `[~]` see §5.5 Python charts |
 | Deliverables (`docs/`, `slides/`) | `[ ]` | **blocking** |
@@ -78,7 +78,7 @@ Required by the assignment or Moodle submission. Without these, the project is i
 | `[x]` | ≥3 SQL **functions or views** (`sql/03`: e.g. `calculate_vote_percentage`, `vw_*`, `get_top_parties`) | §5.3 |
 | `[x]` | ≥2 **PL/pgSQL** routines (`allocate_seats_dhondt`, `refresh_party_municipality_summary`, `calculate_turnout_percentages`, …) | §5.3 |
 | `[x]` | ≥2 **triggers** (`trg_turnout_percentages`, `trg_vote_percentages`, audit triggers) | §5.3 |
-| `[ ]` | **Apply & test** on submission DB: `sql/03` + explain in report/slides | §5.3 |
+| `[~]` | **Apply & test** on submission DB: `sql/03` + explain in report/slides — demos in `sql/07_demo_queries.sql`, `docs/sql_outputs/` | §5.3 |
 | `[~]` | Note in report: ETL bulk load uses `session_replication_role = replica` (audit triggers skipped during load) | §5.3 consistency |
 
 ### 1.5 Analytical SQL (§5.4, rubric 20%)
@@ -90,7 +90,7 @@ Required by the assignment or Moodle submission. Without these, the project is i
 | `[x]` | ≥1 **GROUP BY ROLLUP** (`analytical_query_4_rollup_hierarchical`) | §5.4 |
 | `[x]` | ≥1 **GROUP BY CUBE** (`analytical_query_5_cube_multidimensional`) | §5.4 |
 | `[x]` | ≥1 **advanced aggregate** (FILTER, STRING_AGG, ARRAY_AGG, JSON — `analytical_query_6`) | §5.4 |
-| `[ ]` | **Execute** `sql/04_analytical_queries.sql` on loaded DB; save sample outputs for report/slides | §5.4, §9 |
+| `[~]` | **Execute** `sql/04_analytical_queries.sql` on loaded DB; sample outputs in `docs/sql_outputs/demo_results.txt` | §5.4, §9 |
 | `[ ]` | Report/slides: comparisons across **territories, parties** (and elections if multi-year added) | §5.4 |
 | `[ ]` | Cross-check **D'Hondt / mandates** vs official CNE for sample municipalities | §9 |
 

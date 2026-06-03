@@ -1,0 +1,124 @@
+"""
+Run sql/03 + sql/04 demos and save sample outputs under docs/sql_outputs/.
+Uses etl.config.DB_CONFIG (set DB_USER, DB_PASSWORD, etc.).
+"""
+
+from __future__ import annotations
+
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+OUTPUT_DIR = ROOT / "docs" / "sql_outputs"
+SQL_DIR = ROOT / "sql"
+
+
+def psql_env() -> dict[str, str]:
+    from etl.config import DB_CONFIG
+
+    env = os.environ.copy()
+    env["PGPASSWORD"] = DB_CONFIG["password"]
+    return env
+
+
+def run_psql_file(path: Path, on_error_stop: bool = True) -> subprocess.CompletedProcess:
+    from etl.config import DB_CONFIG
+
+    cmd = [
+        "psql",
+        "-U",
+        DB_CONFIG["user"],
+        "-h",
+        DB_CONFIG["host"],
+        "-p",
+        str(DB_CONFIG["port"]),
+        "-d",
+        DB_CONFIG["database"],
+        "-v",
+        "ON_ERROR_STOP=1" if on_error_stop else "ON_ERROR_STOP=0",
+        "-f",
+        str(path),
+    ]
+    return subprocess.run(
+        cmd,
+        env=psql_env(),
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )
+
+
+def run_psql_query(sql: str, outfile: Path) -> None:
+    from etl.config import DB_CONFIG
+
+    cmd = [
+        "psql",
+        "-U",
+        DB_CONFIG["user"],
+        "-h",
+        DB_CONFIG["host"],
+        "-p",
+        DB_CONFIG["port"],
+        "-d",
+        DB_CONFIG["database"],
+        "-v",
+        "ON_ERROR_STOP=1",
+        "-c",
+        sql,
+    ]
+    result = subprocess.run(cmd, env=psql_env(), cwd=ROOT, capture_output=True, text=True)
+    outfile.write_text(result.stdout + (result.stderr or ""), encoding="utf-8")
+    if result.returncode != 0:
+        raise RuntimeError(f"psql failed ({outfile.name}):\n{result.stderr}")
+
+
+def main() -> int:
+    sys.path.insert(0, str(ROOT))
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+    steps = [
+        ("00_refresh_analytical_views.sql", True),
+        ("04_analytical_queries.sql", True),
+    ]
+    log_path = OUTPUT_DIR / "_apply_log.txt"
+    log_lines: list[str] = []
+
+    for name, stop in steps:
+        path = SQL_DIR / name
+        proc = run_psql_file(path, on_error_stop=stop)
+        log_lines.append(f"=== {name} (exit {proc.returncode}) ===\n")
+        log_lines.append(proc.stdout or "")
+        log_lines.append(proc.stderr or "")
+        if proc.returncode != 0 and stop:
+            log_path.write_text("".join(log_lines), encoding="utf-8")
+            print(proc.stderr, file=sys.stderr)
+            return proc.returncode
+
+    # sql/03: idempotent except triggers; skip full re-apply if triggers exist
+    proc03 = run_psql_file(SQL_DIR / "03_functions_triggers.sql", on_error_stop=False)
+    log_lines.append(f"=== 03_functions_triggers.sql (exit {proc03.returncode}) ===\n")
+    log_lines.append(proc03.stdout or "")
+    log_lines.append(proc03.stderr or "")
+    log_path.write_text("".join(log_lines), encoding="utf-8")
+
+    demo_sql = SQL_DIR / "07_demo_queries.sql"
+    if demo_sql.exists():
+        proc_demo = run_psql_file(demo_sql, on_error_stop=True)
+        (OUTPUT_DIR / "_demo_run.txt").write_text(
+            (proc_demo.stdout or "") + (proc_demo.stderr or ""),
+            encoding="utf-8",
+        )
+        if proc_demo.returncode != 0:
+            print(proc_demo.stderr, file=sys.stderr)
+            return proc_demo.returncode
+
+    print(f"Done. Outputs in {OUTPUT_DIR}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
