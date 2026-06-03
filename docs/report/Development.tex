@@ -1,0 +1,48 @@
+\section{Development}
+So, for this project, we used the 2025, 2021, 2017 and 2013 Portuguese local elections as the basis.
+\subsection{ETL Pipeline}
+\subsection{Functions, Views, and Triggers}
+All functions, views, and triggers were implemented in PostgreSQL using PL/pgSQL.
+\begin{itemize}
+    \item \textbf{Functions:}
+    We created several functions to perform various operations on the election data:
+    \begin{itemize}
+        \item calculate_vote_percentage(p_candidacy_id): Calculate vote percentage for a candidacy.
+        \item get_party_performance_in_municipality(p_election_id, p_municipality_id,
+        p_party_acronym): Get the performance of a party in a specific municipality.
+        \item get_top_parties(p_election_id, p_municipality_id, 
+        p_organ_id, p_limit): Get the top parties in a specific municipality.
+        \item allocate_seats_dhondt(p_election_id, p_organ_id, 
+        p_municipality_id, p_total_seats): Allocate seats based on the D'Hondt method for a specific election and municipality.
+        \item calculate_turnout_percentage(): Calculate voter turnout percentage.
+
+    \end{itemize}
+    \item \textbf{Views:}
+    \begin{itemize}
+        \item H
+        \item Complete result with all dimension attributes (denormalized for easy querying) 
+        \item Complete candidacy information, including vote percentages and seat allocations.
+        \item Complete denormalized view of candidacy information with results
+        \item Do turnout percentages for each election and municipality.
+        \item 
+    \end{itemize}
+    \item \textbf{Triggers:}
+    \begin{itemize}
+        \item Automatically create turnout percentages on INSERT or UPDATE of votes.
+        \item Automatically vote percentages on INSERT or UPDATE of votes.
+        \item Audit log for important table changes (e.g., when a new election is added or when votes are updated).
+    \end{itemize}
+\end{itemize}
+\subsection{Analytical Queries}
+After implementing the functions, views, and triggers,
+ we tested them using SQL queries to ensure they were working 
+ correctly and efficiently. We also analyzed the 
+ results to gain insights into the election data, 
+ such as identifying which parties had the most votes 
+ and how the seats were allocated based on the D'Hondt method. \par 
+
+\subsection{Frontend Overview}
+For the frontend, we used Flask to create a web application that allows users to interact with the election data.
+The frontend provides a user-friendly interface to query the database and visualize the results, 
+such as displaying vote percentages and seat allocations in a more intuitive way. 
+\subsection{Known Limitations}
