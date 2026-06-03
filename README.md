@@ -16,7 +16,9 @@ Database-centred system for Portuguese local election analysis: PostgreSQL/PostG
 | Web app (maps, tables, charts, election selector) | **Done** — [app/](app/) |
 | Cross-election compare (2017 vs 2021 on `/analytics`) | **Done** — `/api/charts/election_comparison` |
 | Warehouse facts + operational load | **Done** |
-| Report, slides, ER diagrams, ETL reconciliation doc | **Open** — [todo.md](todo.md) |
+| Report, slides | **Open** — [todo.md](todo.md) |
+| ETL reconciliation (`docs/etl_reconciliation.md`) | **Done** |
+| ER diagrams (`docs/er_diagrams/`) | **Done** |
 
 Backlog and optional ETL extensions: **[todo.md](todo.md)**.
 
@@ -157,6 +159,7 @@ Functions, PL/pgSQL, and triggers in `sql/03_functions_triggers.sql` (e.g. D'Hon
 | [etl/data/README.md](etl/data/README.md) | Data folder layout |
 | [etl/data/caop/README.md](etl/data/caop/README.md) | Boundary files |
 | [etl/docs/source_inventory_2021.md](etl/docs/source_inventory_2021.md) | Which CNE files are parsed |
+| [docs/etl_reconciliation.md](docs/etl_reconciliation.md) | CNE ↔ CAOP reconciliation (§5.2) |
 | [todo.md](todo.md) | Remaining work (ETL extensions, report, etc.) |
 
 ---
@@ -177,7 +180,7 @@ Details and future tasks: **[todo.md](todo.md)**.
 - [ ] `docs/report.pdf`  
 - [x] `docs/er_diagrams/` — operational + warehouse PNG (pgAdmin ERD)  
 - [ ] `slides/`  
-- [ ] `docs/etl_reconciliation.md` (CNE ↔ CAOP)  
+- [x] `docs/etl_reconciliation.md` (CNE ↔ CAOP)  
 
 ---
 

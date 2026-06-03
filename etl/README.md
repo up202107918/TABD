@@ -73,7 +73,7 @@ Run metadata: `staging.stg_etl_run_log`.
 | Area | Source | Target |
 |------|--------|--------|
 | Results & lists | `mapa_1_resultados` (wide Excel unpivot) | `candidacy`, `vote_result`, parties/coalitions |
-| Turnout | `mapa_anexo` | `turnout` (organ CM) |
+| Turnout | `mapa_1` (wide sheet, CM rows) | `turnout` (organ CM) |
 | Rankings / winner | Derived in transform | `vote_result.ranking_position`, `is_winner` |
 | Territory dictionary | CNE names in staging | `district`, `municipality` |
 | Geometry | `data/caop/*.geojson` or `.shp` | `district.geometry`, `municipality.geometry` |
@@ -162,7 +162,7 @@ Expected order of magnitude (approximate): ~1500+ staging results rows, ~300 tur
 | Autárquicas 2021 results | [CNE](https://www.cne.pt/content/eleicoes-autarquicas-2021) | `data/2021al_mapa_oficial/` |
 | Administrative boundaries | [DGT CAOP](https://www.dgterritorio.gov.pt/atividades/cartografia/cartografia-tematica/caop) | `python -m pipeline.download_caop` → `data/caop/` |
 
-Document territorial mismatches and fallback geometry in **`docs/etl_reconciliation.md`** (to be written — see [../todo.md](../todo.md)).
+Territorial reconciliation (CNE ↔ CAOP, mapa files, islands): **[../docs/etl_reconciliation.md](../docs/etl_reconciliation.md)**.
 
 ---
 

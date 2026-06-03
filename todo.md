@@ -43,7 +43,7 @@ Required by the assignment or Moodle submission. Without these, the project is i
 | `[x]` | **`docs/er_diagrams/`** — `operational_schema_er.png`, `warehouse_star_schema.png` (+ `.pgerd` sources) | §7, rubric 20% |
 | `[ ]` | **`docs/screenshots/`** — working UI (home map, district, municipality, analytics) | §7 |
 | `[ ]` | **`slides/`** — architecture, schema, ETL, SQL demos, live frontend (10–15 slides) | §7.2 |
-| `[ ]` | **`docs/etl_reconciliation.md`** — CNE ↔ CAOP: IDs, names, missing values, mismatches | §5.2 (explicit) |
+| `[x]` | **`docs/etl_reconciliation.md`** — CNE ↔ CAOP: IDs, names, missing values, mismatches | §5.2 (explicit) |
 | `[ ]` | Moodle: repo/archive per group; raw data too large → download script/instructions documented | §7 note |
 | `[ ]` | **Oral prep:** every member can explain schema, ETL, analytical SQL, Flask integration | §7.2, §10 |
 | `[ ]` | Cite external resources (CAOP fallback, libraries, AI tools if used) | §10 |
@@ -56,7 +56,7 @@ Required by the assignment or Moodle submission. Without these, the project is i
 | `[x]` | **Staging schema** before operational load | §5.2 |
 | `[x]` | **Rerunnable** pipeline (`run_etl.py`, run log) | §5.2 |
 | `[x]` | **Warehouse**: ≥1 fact + multiple dimensions populated | §5.2, §6 |
-| `[~]` | **`docs/etl_reconciliation.md`** (see above) — justify CAOP 2021 vs fallback GeoJSON | §4, §5.2 |
+| `[x]` | **`docs/etl_reconciliation.md`** — CNE ↔ CAOP, mapa_1/2, islands, validation | §4, §5.2 |
 | `[ ]` | **`seat_result` populated** for CM (mandates from `mapa_2` or documented pipeline using `allocate_seats_dhondt` + official check) | §5.1 minimum model lists seat results |
 | `[x]` | **Validate subset vs CNE** (Lisboa, Porto, Barrancos) — `etl/docs/validation_samples_2021.md` | §9 good practice |
 | `[~]` | End-to-end demo script: schemas → `download_caop` → `run_etl.py --mode full` → smoke SQL | §9 reproducibility |
