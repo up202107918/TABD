@@ -59,7 +59,7 @@ Required by the assignment or Moodle submission. Without these, the project is i
 | `[x]` | **`docs/etl_reconciliation.md`** — CNE ↔ CAOP, mapa_1/2, islands, validation | §4, §5.2 |
 | `[x]` | **`seat_result` populated** for CM from CNE mapa_2 `M` columns (`load_seats.py`) | §5.1 minimum model lists seat results |
 | `[x]` | **Validate subset vs CNE** (Lisboa, Porto, Barrancos) — `etl/docs/validation_samples_2021.md` | §9 good practice |
-| `[~]` | End-to-end demo script: schemas → `download_caop` → `run_etl.py --mode full` → smoke SQL | §9 reproducibility |
+| `[x]` | End-to-end reproducibility: [docs/reproducibility.md](docs/reproducibility.md), `sql/08_smoke_checks.sql`, `scripts/smoke_check.py` | §9 reproducibility |
 
 ### 1.3 Operational model (§5.1, rubric 20%)
 

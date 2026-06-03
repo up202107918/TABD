@@ -18,6 +18,7 @@ Database-centred system for Portuguese local election analysis: PostgreSQL/PostG
 | Warehouse facts + operational load | **Done** |
 | Report, slides | **Open** — [todo.md](todo.md) |
 | ETL reconciliation (`docs/etl_reconciliation.md`) | **Done** |
+| Reproducibility guide (`docs/reproducibility.md`) | **Done** |
 | ER diagrams (`docs/er_diagrams/`) | **Done** |
 
 Backlog and optional ETL extensions: **[todo.md](todo.md)**.
@@ -161,6 +162,7 @@ Functions, PL/pgSQL, and triggers in `sql/03_functions_triggers.sql` (e.g. D'Hon
 | [etl/data/caop/README.md](etl/data/caop/README.md) | Boundary files |
 | [etl/docs/source_inventory_2021.md](etl/docs/source_inventory_2021.md) | Which CNE files are parsed |
 | [docs/etl_reconciliation.md](docs/etl_reconciliation.md) | CNE ↔ CAOP reconciliation (§5.2) |
+| [docs/reproducibility.md](docs/reproducibility.md) | End-to-end rebuild guide (§9) |
 | [todo.md](todo.md) | Remaining work (ETL extensions, report, etc.) |
 
 ---
