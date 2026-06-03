@@ -1,58 +1,47 @@
 """
-Database Configuration for Election Analytics Platform
-Advanced Topics in Databases - Practical Assignment
+ETL configuration: database connection, dataset definitions, paths.
 """
 
 import os
-from typing import Dict, List
-
+from typing import Any, Dict, List
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, 'data')
 
+# One ETL run targets a single election dataset (folder under etl/data).
+DATASETS: Dict[str, Dict[str, Any]] = {
+    'aut_2021': {
+        'election_year': 2021,
+        'election_date': '2021-09-26',
+        'election_type_code': 'AUT',
+        'description': 'Autárquicas 2021',
+        'data_dirs': ['2021al_mapa_oficial'],
+        'primary_organ': 'CM',
+    },
+}
 
-def _discover_dataset_dirs(root_dir: str) -> List[str]:
-    """Return absolute paths for each dataset directory under ETL data."""
-    if not os.path.isdir(root_dir):
-        return []
+DEFAULT_DATASET = 'aut_2021'
 
-    dataset_dirs = []
-    for entry in sorted(os.listdir(root_dir)):
-        full_path = os.path.join(root_dir, entry)
-        if os.path.isdir(full_path):
-            dataset_dirs.append(full_path)
-    return dataset_dirs
-
-# Database connection parameters
 DB_CONFIG: Dict[str, str] = {
     'host': os.getenv('DB_HOST', 'localhost'),
     'port': os.getenv('DB_PORT', '5432'),
     'database': os.getenv('DB_NAME', 'election_analytics'),
     'user': os.getenv('DB_USER', 'username'),
-    'password': os.getenv('DB_PASSWORD', 'password')
+    'password': os.getenv('DB_PASSWORD', 'password'),
 }
 
-# Path configuration for ETL input folders
-DATA_PATH = DATA_DIR  # Backward-compatible alias
-DATASET_DIRS = _discover_dataset_dirs(DATA_DIR)
-
-# Schema names
 SCHEMAS = {
     'staging': 'staging',
     'operational': 'operational',
-    'warehouse': 'warehouse'
+    'warehouse': 'warehouse',
 }
 
-# ETL Configuration
 ETL_CONFIG = {
-    'batch_size': 1000,  # Number of records to insert at once
-    'max_retries': 3,     # Max retries for failed operations
-    'log_level': 'INFO'   # Logging level: DEBUG, INFO, WARNING, ERROR
+    'batch_size': 1000,
+    'log_level': 'INFO',
 }
 
-# Party name standardization mapping
 PARTY_MAPPING = {
-    # Common variations → standardized acronym
     'PS': 'PS',
     'PSD': 'PSD',
     'CDS-PP': 'CDS-PP',
@@ -65,27 +54,31 @@ PARTY_MAPPING = {
     'IL': 'IL',
     'LIVRE': 'L',
     'PPD/PSD': 'PSD',
-    'PSD/CDS-PP': 'PSD/CDS',  # Coalition
-    'PS/PSD': 'PS/PSD',  # Coalition
+    'PSD/CDS-PP': 'PSD/CDS',
+    'PS/PSD': 'PS/PSD',
 }
 
-# Electoral organ codes
 ORGAN_CODES = {
     'Câmara Municipal': 'CM',
     'Assembleia Municipal': 'AM',
-    'Junta de Freguesia': 'JF'
+    'Junta de Freguesia': 'JF',
 }
 
-def get_connection_string() -> str:
-    """Generate PostgreSQL connection string"""
-    return f"postgresql://{DB_CONFIG['user']}:{DB_CONFIG['password']}@{DB_CONFIG['host']}:{DB_CONFIG['port']}/{DB_CONFIG['database']}"
+
+def get_dataset_config(dataset_key: str) -> Dict[str, Any]:
+    """Return config for a named dataset or raise KeyError."""
+    if dataset_key not in DATASETS:
+        known = ', '.join(sorted(DATASETS))
+        raise KeyError(f"Unknown dataset '{dataset_key}'. Available: {known}")
+    return DATASETS[dataset_key]
 
 
-def get_dataset_dirs() -> List[str]:
-    """Get dataset directories and refresh discovery if needed."""
-    return _discover_dataset_dirs(DATA_DIR)
-
-def get_dataset_dirs() -> List[str]:
-    """Get dataset directories and refresh discovery if needed."""
-    return _discover_dataset_dirs(DATA_DIR)
-
+def get_dataset_dirs(dataset_key: str = DEFAULT_DATASET) -> List[str]:
+    """Return absolute paths to Excel source folders for one dataset."""
+    cfg = get_dataset_config(dataset_key)
+    dirs: List[str] = []
+    for name in cfg['data_dirs']:
+        path = os.path.join(DATA_DIR, name)
+        if os.path.isdir(path):
+            dirs.append(path)
+    return dirs

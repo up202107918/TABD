@@ -42,7 +42,11 @@ Historical datasets in this repo (2013, 2017, 2025) were added manually from CNE
 
 ```bash
 cd etl
+# Recommended (loads only aut_2021 folder):
+python run_etl.py --dataset aut_2021 --mode staging-only
+
+# Legacy wrapper (same as staging-only for aut_2021):
 python etl_pipeline.py
 ```
 
-Requires PostgreSQL configured in `etl/config.py` (or `DB_*` environment variables) and schemas from `sql/05_staging_schema.sql` (and related scripts) already applied.
+Requires PostgreSQL in `etl/config.py` (or `DB_*` env vars) and `sql/05_staging_schema.sql` applied.
