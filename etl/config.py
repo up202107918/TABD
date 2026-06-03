@@ -10,6 +10,16 @@ DATA_DIR = os.path.join(BASE_DIR, 'data')
 
 # One ETL run targets a single election dataset (folder under etl/data).
 DATASETS: Dict[str, Dict[str, Any]] = {
+    'aut_2017': {
+        'election_year': 2017,
+        'election_date': '2017-10-01',
+        'election_type_code': 'AUT',
+        'description': 'Autárquicas 2017',
+        'data_dirs': ['al2017_mapaoficial_retif02_01out2018'],
+        'primary_organ': 'CM',
+        # CNE 2017: 01-mapa_I_vf_r2.xls (results); skip mapa II/III in extract
+        'workbook_include': ['mapa_i', 'mapa_1', 'parte1'],
+    },
     'aut_2021': {
         'election_year': 2021,
         'election_date': '2021-09-26',

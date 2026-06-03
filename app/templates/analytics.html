@@ -11,11 +11,87 @@
             <p class="lead">Comprehensive election data analysis and visualizations</p>
         </div>
     </div>
+
+    <!-- Cross-election comparison (Autárquicas) -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h2 class="mb-3">Compare local elections (CM, national totals)</h2>
+            <p class="text-muted">Side-by-side comparison of two Autárquicas years loaded in the database.</p>
+        </div>
+        {% if can_compare_elections %}
+        <div class="col-md-12 mb-3">
+            <div class="card">
+                <div class="card-body row g-3 align-items-end">
+                    <div class="col-md-4">
+                        <label class="form-label" for="compareElectionA">Election A (older)</label>
+                        <select id="compareElectionA" class="form-select">
+                            {% for e in elections %}
+                            <option value="{{ e.election_id }}" {% if e.election_id == compare_election_a_id %}selected{% endif %}>
+                                {{ e.election_year }} — {{ e.description or e.type_name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="compareElectionB">Election B (newer)</label>
+                        <select id="compareElectionB" class="form-select">
+                            {% for e in elections %}
+                            <option value="{{ e.election_id }}" {% if e.election_id == compare_election_b_id %}selected{% endif %}>
+                                {{ e.election_year }} — {{ e.description or e.type_name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <button type="button" class="btn btn-primary w-100" id="btnCompareElections">Compare</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Total votes by party (top lists)</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="electionCompareChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card mb-3">
+                <div class="card-header"><h5 class="mb-0">Average turnout (CM)</h5></div>
+                <div class="card-body" id="turnoutCompareSummary">—</div>
+            </div>
+            <div class="card">
+                <div class="card-header"><h5 class="mb-0">Vote share change (pp)</h5></div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-0" id="electionCompareTable">
+                            <thead><tr><th>Party</th><th id="thYearA">A</th><th id="thYearB">B</th><th>Δ pp</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-12">
+            <div id="electionCompareError" class="alert alert-warning d-none"></div>
+        </div>
+        {% else %}
+        <div class="col-md-12">
+            <div class="alert alert-info">
+                Load at least two election years (e.g. <code>python run_etl.py --dataset aut_2017 --mode full</code>
+                and <code>aut_2021</code>) to enable comparison.
+            </div>
+        </div>
+        {% endif %}
+    </div>
     
     <!-- National Party Comparison -->
     <div class="row mb-4">
         <div class="col-md-12">
-            <h2 class="mb-3">National Party Performance</h2>
+            <h2 class="mb-3">National Party Performance{% if current_election %} ({{ current_election.election_year }}){% endif %}</h2>
         </div>
         
         <div class="col-md-6">
@@ -163,7 +239,96 @@
 
 {% block extra_js %}
 <script>
-    // Fetch party comparison data
+    let electionCompareChart = null;
+
+    {% if can_compare_elections %}
+    function loadElectionComparison() {
+        const idA = document.getElementById('compareElectionA').value;
+        const idB = document.getElementById('compareElectionB').value;
+        const errEl = document.getElementById('electionCompareError');
+        errEl.classList.add('d-none');
+
+        if (idA === idB) {
+            errEl.textContent = 'Choose two different elections.';
+            errEl.classList.remove('d-none');
+            return;
+        }
+
+        const url = new URL(window.location.origin + '/api/charts/election_comparison');
+        url.searchParams.set('election_id_a', idA);
+        url.searchParams.set('election_id_b', idB);
+
+        fetch(url)
+            .then(r => r.json().then(body => ({ ok: r.ok, body })))
+            .then(({ ok, body }) => {
+                if (!ok) {
+                    errEl.textContent = body.error || 'Comparison failed';
+                    errEl.classList.remove('d-none');
+                    return;
+                }
+                renderElectionComparison(body);
+                const pageUrl = new URL(window.location.href);
+                pageUrl.searchParams.set('election_id_a', idA);
+                pageUrl.searchParams.set('election_id_b', idB);
+                history.replaceState(null, '', pageUrl);
+            })
+            .catch(e => {
+                errEl.textContent = 'Error loading comparison: ' + e;
+                errEl.classList.remove('d-none');
+            });
+    }
+
+    function renderElectionComparison(data) {
+        document.getElementById('thYearA').textContent = data.label_a + ' %';
+        document.getElementById('thYearB').textContent = data.label_b + ' %';
+
+        const tbody = document.querySelector('#electionCompareTable tbody');
+        tbody.innerHTML = data.rows.map(r => `
+            <tr>
+                <td>${r.party}</td>
+                <td>${r.pct_a}</td>
+                <td>${r.pct_b}</td>
+                <td>${r.pct_delta >= 0 ? '+' : ''}${r.pct_delta}</td>
+            </tr>
+        `).join('');
+
+        const ta = data.turnout[data.label_a];
+        const tb = data.turnout[data.label_b];
+        document.getElementById('turnoutCompareSummary').innerHTML = `
+            <p class="mb-1"><strong>${data.label_a}:</strong> ${ta != null ? ta + '%' : '—'}</p>
+            <p class="mb-0"><strong>${data.label_b}:</strong> ${tb != null ? tb + '%' : '—'}</p>
+            ${ta != null && tb != null ? '<p class="small text-muted mt-2">Δ ' + (tb - ta).toFixed(2) + ' pp</p>' : ''}
+        `;
+
+        const ctx = document.getElementById('electionCompareChart').getContext('2d');
+        if (electionCompareChart) electionCompareChart.destroy();
+        electionCompareChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: data.parties,
+                datasets: data.datasets.map((ds, i) => ({
+                    label: ds.label,
+                    data: ds.data,
+                    backgroundColor: i === 0 ? 'rgba(52, 152, 219, 0.75)' : 'rgba(231, 76, 60, 0.75)',
+                })),
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { callback: v => v.toLocaleString() },
+                    },
+                },
+            },
+        });
+    }
+
+    document.getElementById('btnCompareElections').addEventListener('click', loadElectionComparison);
+    loadElectionComparison();
+    {% endif %}
+
+    // Fetch party comparison data (single election — navbar selection)
     const electionId = {{ current_election_id or 'null' }};
     fetch('/api/charts/party_comparison?election_id=' + electionId)
         .then(response => response.json())

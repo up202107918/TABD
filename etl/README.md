@@ -81,6 +81,13 @@ Run metadata: `staging.stg_etl_run_log`.
 
 **Validation (post-load):** `python scripts/validate_samples_2021.py` → [docs/validation_samples_2021.md](docs/validation_samples_2021.md) (mapa_1 vs DB; mapa_2 vote %; D'Hondt ex10 pattern).
 
+**Multi-election:** `aut_2017` and `aut_2021` in [config.py](config.py). Load 2017 after 2021 (or vice versa); each run only replaces rows for that `election_id`:
+
+```bash
+python run_etl.py --dataset aut_2017 --mode full
+python run_etl.py --dataset aut_2021 --mode full
+```
+
 **Skipped in MVP (by design):**
 
 - `mapa_2` / `mapa_3` not loaded by ETL (used only in validation script) — see [docs/source_inventory_2021.md](docs/source_inventory_2021.md)

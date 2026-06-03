@@ -48,6 +48,54 @@ def fetch_elections() -> List[Dict]:
     )
 
 
+def resolve_comparison_election_ids(
+    elections: Optional[List[Dict]] = None,
+) -> Optional[tuple]:
+    """
+    Return (election_id_a, election_id_b) for cross-election charts.
+    Query params: election_id_a / election_id_b, or election_year_a / election_year_b.
+    Defaults: two most recent distinct years in the database.
+    """
+    elections = elections if elections is not None else fetch_elections()
+    if len(elections) < 2:
+        return None
+
+    by_id = {e['election_id']: e for e in elections}
+
+    def id_from_arg(param_id: str, param_year: str) -> Optional[int]:
+        if request.args.get(param_id):
+            return int(request.args[param_id])
+        if request.args.get(param_year):
+            year = int(request.args[param_year])
+            for e in elections:
+                if e['election_year'] == year:
+                    return e['election_id']
+        return None
+
+    id_a = id_from_arg('election_id_a', 'election_year_a')
+    id_b = id_from_arg('election_id_b', 'election_year_b')
+
+    if id_a is None and id_b is None:
+        id_a = elections[-1]['election_id']
+        id_b = elections[-2]['election_id']
+    elif id_a is None:
+        id_a = elections[-1]['election_id'] if id_b != elections[-1]['election_id'] else elections[-2]['election_id']
+    elif id_b is None:
+        id_b = elections[-2]['election_id'] if id_a != elections[-2]['election_id'] else elections[-1]['election_id']
+
+    if id_a == id_b:
+        return None
+
+    if id_a not in by_id or id_b not in by_id:
+        return None
+
+    # Always return (older, newer) for consistent chart labels
+    ea, eb = by_id[id_a], by_id[id_b]
+    if ea['election_year'] <= eb['election_year']:
+        return id_a, id_b
+    return id_b, id_a
+
+
 def resolve_election_id(elections: Optional[List[Dict]] = None) -> Optional[int]:
     """Pick election from query string or default to the latest in the database."""
     if request.args.get('election_id'):
@@ -323,6 +371,114 @@ def api_map_municipalities(district_id: int):
     return jsonify({'type': 'FeatureCollection', 'features': features})
 
 
+def _fetch_national_party_totals(election_id: int, min_votes: int = 500) -> Dict[str, int]:
+    rows = execute_query(
+        """
+        SELECT COALESCE(p.party_acronym, co.coalition_acronym) AS party,
+               SUM(vr.votes_obtained) AS total_votes
+        FROM operational.candidacy c
+        LEFT JOIN operational.party p ON c.party_id = p.party_id
+        LEFT JOIN operational.coalition co ON c.coalition_id = co.coalition_id
+        JOIN operational.vote_result vr ON c.candidacy_id = vr.candidacy_id
+        WHERE c.election_id = %s AND c.organ_id = ({organ})
+        GROUP BY COALESCE(p.party_acronym, co.coalition_acronym)
+        HAVING SUM(vr.votes_obtained) >= %s
+        ORDER BY total_votes DESC
+        """.format(organ=ORGAN_CM_SUBQUERY),
+        (election_id, min_votes),
+    )
+    return {r['party']: int(r['total_votes']) for r in rows}
+
+
+def _fetch_avg_turnout(election_id: int) -> Optional[float]:
+    rows = execute_query(
+        """
+        SELECT ROUND(AVG(
+            COALESCE(
+                t.turnout_percentage,
+                100.0 * t.votes_cast::NUMERIC / NULLIF(t.registered_voters, 0)
+            )
+        ), 2) AS avg_turnout
+        FROM operational.turnout t
+        WHERE t.election_id = %s
+          AND t.organ_id = ({organ})
+          AND t.municipality_id IS NOT NULL
+          AND t.registered_voters > 0
+        """.format(organ=ORGAN_CM_SUBQUERY),
+        (election_id,),
+    )
+    if not rows or rows[0]['avg_turnout'] is None:
+        return None
+    return float(rows[0]['avg_turnout'])
+
+
+@app.route('/api/charts/election_comparison')
+def api_charts_election_comparison():
+    """National CM totals for two local elections (for grouped bar chart)."""
+    elections = fetch_elections()
+    pair = resolve_comparison_election_ids(elections)
+    if not pair:
+        return jsonify({
+            'error': 'Need at least two elections loaded (e.g. aut_2017 and aut_2021).',
+            'elections_available': len(elections),
+        }), 400
+
+    id_a, id_b = pair
+    meta = {e['election_id']: e for e in elections}
+    year_a = int(meta[id_a]['election_year'])
+    year_b = int(meta[id_b]['election_year'])
+    label_a = str(year_a)
+    label_b = str(year_b)
+
+    votes_a = _fetch_national_party_totals(id_a)
+    votes_b = _fetch_national_party_totals(id_b)
+
+    ranked = sorted(
+        set(votes_a) | set(votes_b),
+        key=lambda p: max(votes_a.get(p, 0), votes_b.get(p, 0)),
+        reverse=True,
+    )[:12]
+
+    total_a = sum(votes_a.values()) or 1
+    total_b = sum(votes_b.values()) or 1
+    rows = []
+    for party in ranked:
+        va = votes_a.get(party, 0)
+        vb = votes_b.get(party, 0)
+        pct_a = round(100.0 * va / total_a, 2)
+        pct_b = round(100.0 * vb / total_b, 2)
+        rows.append({
+            'party': party,
+            'votes_a': va,
+            'votes_b': vb,
+            'pct_a': pct_a,
+            'pct_b': pct_b,
+            'pct_delta': round(pct_b - pct_a, 2),
+        })
+
+    return jsonify({
+        'election_id_a': id_a,
+        'election_id_b': id_b,
+        'label_a': label_a,
+        'label_b': label_b,
+        'parties': ranked,
+        'datasets': [
+            {'label': label_a, 'data': [votes_a.get(p, 0) for p in ranked]},
+            {'label': label_b, 'data': [votes_b.get(p, 0) for p in ranked]},
+        ],
+        'percentages': {
+            label_a: [round(100.0 * votes_a.get(p, 0) / total_a, 2) for p in ranked],
+            label_b: [round(100.0 * votes_b.get(p, 0) / total_b, 2) for p in ranked],
+        },
+        'rows': rows,
+        'turnout': {
+            label_a: _fetch_avg_turnout(id_a),
+            label_b: _fetch_avg_turnout(id_b),
+        },
+        'totals': {label_a: total_a, label_b: total_b},
+    })
+
+
 @app.route('/api/charts/party_comparison')
 def api_charts_party_comparison():
     election_id = resolve_election_id()
@@ -356,7 +512,17 @@ def api_charts_party_comparison():
 
 @app.route('/analytics')
 def analytics():
-    return render_template('analytics.html')
+    elections = fetch_elections()
+    compare_pair = resolve_comparison_election_ids(elections)
+    compare_a_id = compare_b_id = None
+    if compare_pair:
+        compare_a_id, compare_b_id = compare_pair
+    return render_template(
+        'analytics.html',
+        compare_election_a_id=compare_a_id,
+        compare_election_b_id=compare_b_id,
+        can_compare_elections=compare_pair is not None,
+    )
 
 
 @app.errorhandler(404)

@@ -14,6 +14,7 @@ Database-centred system for Portuguese local election analysis: PostgreSQL/PostG
 | DB schemas (`sql/01`–`05`) | Ready |
 | ETL MVP (Autárquicas 2021, CM, municipality) | **Done** — [etl/README.md](etl/README.md) |
 | Web app (maps, tables, charts, election selector) | **Done** — [app/](app/) |
+| Cross-election compare (2017 vs 2021 on `/analytics`) | **Done** — `/api/charts/election_comparison` |
 | Warehouse facts + operational load | **Done** |
 | Report, slides, ER diagrams, ETL reconciliation doc | **Open** — [todo.md](todo.md) |
 
@@ -105,6 +106,8 @@ Open **http://localhost:8000** (default port from `PORT` env or 8000).
 
 Use the navbar to select **election** and **municipality**; URLs carry `?election_id=...`.
 
+**Two election years (e.g. 2017 + 2021):** load both via ETL ([etl/README.md](etl/README.md)), then open **/analytics** for the cross-year comparison chart, or call `GET /api/charts/election_comparison?election_id_a=…&election_id_b=…`.
+
 ---
 
 ## Database overview
@@ -131,8 +134,8 @@ Functions, PL/pgSQL, and triggers in `sql/03_functions_triggers.sql` (e.g. D'Hon
 
 - **Stack:** Flask, psycopg2 (explicit SQL, no ORM), Bootstrap 5, Leaflet, Chart.js  
 - **Routes:** home map, districts, municipality detail, analytics dashboard  
-- **API:** GeoJSON districts/municipalities, party comparison JSON  
-- **Requirement:** election + territorial unit selection — implemented via query string and navbar selectors  
+- **API:** GeoJSON districts/municipalities; `party_comparison` (one year); `election_comparison` (two years, CM national totals)  
+- **Requirement:** election + territorial unit selection — navbar + query string; cross-year compare on `/analytics` when ≥2 elections in DB  
 
 ---
 

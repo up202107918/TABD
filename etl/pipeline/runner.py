@@ -101,12 +101,16 @@ def run_pipeline(dataset_key: str, mode: str = MODE_FULL) -> None:
     try:
         if mode == MODE_STAGING_ONLY:
             clear_staging(conn)
-            extract_stats = run_extract(conn, dataset_dirs)
+            extract_stats = run_extract(
+                conn, dataset_dirs, cfg.get('workbook_include')
+            )
             stats.update(extract_stats)
 
         elif mode in (MODE_FULL, MODE_RELOAD_OPERATIONAL):
             clear_staging(conn)
-            extract_stats = run_extract(conn, dataset_dirs)
+            extract_stats = run_extract(
+                conn, dataset_dirs, cfg.get('workbook_include')
+            )
             stats.update(extract_stats)
             apply_operational_transform(conn, dataset_key, stats)
             geo_stats = run_transform_geo(conn)

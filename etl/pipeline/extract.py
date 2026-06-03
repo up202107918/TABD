@@ -102,7 +102,6 @@ SKIP_WORKBOOK_MARKERS = (
     'mapa_2', 'mapa_3', 'parte2', 'parte3', 'perc_mandatos', 'eleitos',
 )
 
-WIDE_DATA_START_ROW = 4
 WIDE_PARTY_COL_START = 8
 
 
@@ -121,7 +120,10 @@ def should_load_workbook(workbook_path: str) -> bool:
     return not any(marker in name for marker in SKIP_WORKBOOK_MARKERS)
 
 
-def discover_excel_workbooks(dataset_dirs: List[str]) -> List[str]:
+def discover_excel_workbooks(
+    dataset_dirs: List[str],
+    include_markers: Optional[List[str]] = None,
+) -> List[str]:
     workbooks: List[str] = []
     for dataset_dir in dataset_dirs:
         root = Path(dataset_dir)
@@ -129,9 +131,22 @@ def discover_excel_workbooks(dataset_dirs: List[str]) -> List[str]:
             continue
         for path in sorted(root.rglob('*')):
             if path.is_file() and path.suffix.lower() in {'.xls', '.xlsx'}:
-                if should_load_workbook(str(path)):
-                    workbooks.append(str(path))
+                if not should_load_workbook(str(path)):
+                    continue
+                name = path.name.lower()
+                if include_markers and not any(m in name for m in include_markers):
+                    continue
+                workbooks.append(str(path))
     return workbooks
+
+
+def find_wide_mapa_header_row(df: pd.DataFrame, max_scan_rows: int = 15) -> Optional[int]:
+    """Locate the cod/conc header row (row 3 in 2021, row 2 in 2017)."""
+    for index in range(min(max_scan_rows, len(df))):
+        normalized = [normalize_label(v) for v in df.iloc[index].tolist()]
+        if 'cod' in normalized and 'conc' in normalized:
+            return index
+    return None
 
 
 def read_workbook_sheets(workbook_path: str) -> Dict[str, pd.DataFrame]:
@@ -238,11 +253,8 @@ def party_code_to_acronym(code: str) -> str:
 
 
 def is_wide_mapa_sheet(df: pd.DataFrame) -> bool:
-    """Detect CNE mapa_I wide layout (cod/conc header on row 3)."""
-    if len(df) < 5:
-        return False
-    row3 = [normalize_label(v) for v in df.iloc[3].tolist()]
-    return 'cod' in row3 and 'conc' in row3
+    """Detect CNE mapa_I wide layout (cod/conc header row varies by year)."""
+    return find_wide_mapa_header_row(df) is not None
 
 
 def parse_wide_mapa_sheet(
@@ -252,18 +264,23 @@ def parse_wide_mapa_sheet(
     Unpivot CNE mapa_1 wide sheet into long result and turnout records.
     Loads municipality-level CM rows only.
     """
-    header = [normalize_label(v) for v in raw_sheet.iloc[3].tolist()]
+    header_row = find_wide_mapa_header_row(raw_sheet)
+    if header_row is None:
+        return [], []
+
+    header = [normalize_label(v) for v in raw_sheet.iloc[header_row].tolist()]
     party_columns: List[Tuple[int, str]] = []
     for idx in range(WIDE_PARTY_COL_START, len(header)):
         code = header[idx]
-        if code:
+        if code and code not in ('partidos', 'org'):
             party_columns.append((idx, code))
 
     results: List[Dict[str, Any]] = []
     turnouts: List[Dict[str, Any]] = []
     current_district: Optional[str] = None
+    data_start_row = header_row + 1
 
-    for row_idx in range(WIDE_DATA_START_ROW, len(raw_sheet)):
+    for row_idx in range(data_start_row, len(raw_sheet)):
         row = raw_sheet.iloc[row_idx].tolist()
         conc = cell_text(row[1] if len(row) > 1 else None)
         freg = cell_text(row[2] if len(row) > 2 else None)
@@ -335,12 +352,16 @@ def insert_rows(conn, table: str, data: List[Dict[str, Any]]) -> int:
     return len(data)
 
 
-def run_extract(conn, dataset_dirs: List[str]) -> Dict[str, int]:
+def run_extract(
+    conn,
+    dataset_dirs: List[str],
+    workbook_include: Optional[List[str]] = None,
+) -> Dict[str, int]:
     """
     Load Excel files into staging.stg_election_results and stg_turnout_data.
     Returns row counts for logging.
     """
-    workbook_paths = discover_excel_workbooks(dataset_dirs)
+    workbook_paths = discover_excel_workbooks(dataset_dirs, workbook_include)
     if not workbook_paths:
         raise FileNotFoundError('No .xls/.xlsx files found in dataset folders')
 

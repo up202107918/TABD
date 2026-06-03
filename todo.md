@@ -136,9 +136,9 @@ Not strictly blocking minimum scope, but strong impact on grade (rubric) and pre
 
 | Status | Task | Why |
 |--------|------|-----|
-| `[ ]` | Second dataset **`aut_2017`** or **`aut_2013`** in `config.py` + full load | §5.4 cross-election comparison; §6 extension |
+| `[x]` | Second dataset **`aut_2017`** in `config.py` + full load (`election_id` per year) | §5.4 cross-election comparison; §6 extension |
 | `[ ]` | **Assembleia Municipal (AM)** or **Junta de Freguesia (JF)** in ETL filters | §5.1 organs coverage |
-| `[ ]` | Flask: compare two election years on analytics page | §5.4 comparisons |
+| `[x]` | Flask: compare two election years on analytics page (`/api/charts/election_comparison`) | §5.4 comparisons |
 
 ### 2.3 Application & UX
 
