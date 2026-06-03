@@ -2,7 +2,7 @@
 
 Plan podzielony na **fazy z numerowanymi krokami**. Każdy krok ma cel, pliki, kryteria „done” i gotową frazę do wklejenia w czacie (np. *„Zrób krok 3.2”*).
 
-**Stan projektu (punkt wyjścia):** `etl/etl_pipeline.py` ładuje dane tylko do **staging**. Schematy `operational`, `warehouse` i `staging` są w SQL. Aplikacja Flask czyta `operational.*` z hardcode `election_year = 2021`.
+**Stan projektu:** ETL `run_etl.py --mode full` ładuje staging → operational → warehouse (2021 MVP). Flask używa `election_id` z query string + selektory w navbarze.
 
 ---
 
@@ -239,7 +239,7 @@ W `extract.py` / helperach:
 
 ## Faza 3 — Geografia (CAOP → PostGIS)
 
-### Krok 3.1 — Pobranie CAOP
+### Krok 3.1 — Pobranie CAOP ✅ (helper + docs)
 
 **Cel:** działające granice dystryktów i concelhów.
 
@@ -254,7 +254,7 @@ W `extract.py` / helperach:
 
 ---
 
-### Krok 3.2 — Load geografii do operational
+### Krok 3.2 — Load geografii do operational ✅ (wymaga plików w `etl/data/caop/`)
 
 **Cel:** `district.geometry` i `municipality.geometry` wypełnione.
 
@@ -419,7 +419,7 @@ W Pythonie lub SQL (`window functions`):
 
 ## Faza 6 — Post-load operational
 
-### Krok 6.1 — `party_municipality_summary`
+### Krok 6.1 — `party_municipality_summary` ✅
 
 **Cel:** zgodność z procedurą w `03_functions_triggers.sql`.
 
@@ -448,7 +448,7 @@ Zapisać wynik w `etl/docs/validation_samples_2021.md`.
 
 ## Faza 7 — Warehouse
 
-### Krok 7.1 — Wymiary z operational
+### Krok 7.1 — Wymiary z operational ✅
 
 **Cel:** wypełnić `dim_election`, `dim_organ`, `dim_district`, `dim_municipality`, `dim_party`.
 
@@ -465,7 +465,7 @@ SELECT COUNT(*) FROM warehouse.dim_party;
 
 ---
 
-### Krok 7.2 — `fact_election_result` i `fact_turnout`
+### Krok 7.2 — `fact_election_result` i `fact_turnout` ✅
 
 **Cel:** star schema gotowa pod `04_analytical_queries.sql` i przyszłe raporty.
 
@@ -493,9 +493,9 @@ Te kroki **nie są w ETL**, ale ETL pod nie przygotowuje dane:
 
 | Krok | Opis |
 |------|------|
-| 8.1 | Parametr `election_year` / `election_id` w routach Flask zamiast hardcode 2021 |
-| 8.2 | Dropdown wyborów + concelho w UI |
-| 8.3 | Mapa: przeładowanie GeoJSON po zmianie roku |
+| 8.1 ✅ | Parametr `election_year` / `election_id` w routach Flask zamiast hardcode 2021 |
+| 8.2 ✅ | Dropdown wyborów + concelho w UI |
+| 8.3 ✅ | Mapa: przeładowanie GeoJSON po zmianie roku |
 
 **Fraza:** *„Krok 8.1 — podłącz election_id z query string w app.py.”*
 

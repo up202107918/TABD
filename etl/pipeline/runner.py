@@ -9,6 +9,9 @@ from config import ETL_CONFIG, get_dataset_config, get_dataset_dirs
 
 from pipeline.db import connect
 from pipeline.extract import run_extract
+from pipeline.load_warehouse import run_load_warehouse
+from pipeline.post_load import run_post_load
+from pipeline.transform_geo import run_transform_geo
 from pipeline.transform_operational import run_transform_operational
 
 # Modes supported by run_etl.py
@@ -69,10 +72,6 @@ def finish_run(conn, run_id: int, status: str, stats: Dict[str, Any], error: Opt
     conn.commit()
 
 
-def stub_phase(name: str) -> None:
-    logging.warning('%s: not implemented yet (next ETL phase)', name)
-
-
 def apply_operational_transform(conn, dataset_key: str, stats: Dict[str, Any]) -> None:
     transform_stats = run_transform_operational(conn, dataset_key)
     stats['rows_transformed'] = transform_stats.get('transformed', 0)
@@ -105,19 +104,20 @@ def run_pipeline(dataset_key: str, mode: str = MODE_FULL) -> None:
             extract_stats = run_extract(conn, dataset_dirs)
             stats.update(extract_stats)
 
-        elif mode == MODE_FULL:
+        elif mode in (MODE_FULL, MODE_RELOAD_OPERATIONAL):
             clear_staging(conn)
             extract_stats = run_extract(conn, dataset_dirs)
             stats.update(extract_stats)
             apply_operational_transform(conn, dataset_key, stats)
-            stub_phase('transform_geography')
-            stub_phase('load_warehouse')
-
-        elif mode == MODE_RELOAD_OPERATIONAL:
-            clear_staging(conn)
-            extract_stats = run_extract(conn, dataset_dirs)
-            stats.update(extract_stats)
-            apply_operational_transform(conn, dataset_key, stats)
+            geo_stats = run_transform_geo(conn)
+            stats['rows_loaded'] = stats.get('rows_loaded', 0) + geo_stats.get(
+                'districts_geo', 0
+            ) + geo_stats.get('municipalities_geo', 0)
+            if mode == MODE_FULL:
+                wh_stats = run_load_warehouse(conn, dataset_key)
+                stats['rows_loaded'] += wh_stats.get('warehouse_facts', 0)
+            post_stats = run_post_load(conn, dataset_key)
+            stats['rows_transformed'] += post_stats.get('summary_refreshed', 0)
 
         finish_run(conn, run_id, 'completed', stats)
         logging.info('Pipeline finished: dataset=%s mode=%s', dataset_key, mode)

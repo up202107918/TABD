@@ -130,15 +130,34 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
+                <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-2">
                     <li class="nav-item">
-                        <a class="nav-link" href="/">Home</a>
+                        <label class="text-white-50 small me-1 mb-0" for="electionSelect">Election</label>
+                        <select id="electionSelect" class="form-select form-select-sm" style="min-width: 11rem;">
+                            {% for e in elections %}
+                            <option value="{{ e.election_id }}" {% if e.election_id == current_election_id %}selected{% endif %}>
+                                {{ e.election_year }} — {{ e.description or e.type_name }}
+                            </option>
+                            {% endfor %}
+                        </select>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/districts">Districts</a>
+                        <label class="text-white-50 small me-1 mb-0" for="municipalitySelect">Municipality</label>
+                        <select id="municipalitySelect" class="form-select form-select-sm" style="min-width: 14rem;">
+                            <option value="">— select —</option>
+                            {% for m in municipalities_select %}
+                            <option value="{{ m.municipality_id }}">{{ m.municipality_name }} ({{ m.district_name }})</option>
+                            {% endfor %}
+                        </select>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/analytics">Analytics</a>
+                        <a class="nav-link" href="{{ url_for('index', election_id=current_election_id) }}">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('districts', election_id=current_election_id) }}">Districts</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('analytics', election_id=current_election_id) }}">Analytics</a>
                     </li>
                 </ul>
             </div>
@@ -176,6 +195,31 @@
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
+    <script>
+        (function () {
+            const electionSelect = document.getElementById('electionSelect');
+            const municipalitySelect = document.getElementById('municipalitySelect');
+
+            if (electionSelect) {
+                electionSelect.addEventListener('change', function () {
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('election_id', this.value);
+                    window.location.href = url.toString();
+                });
+            }
+
+            if (municipalitySelect) {
+                municipalitySelect.addEventListener('change', function () {
+                    if (!this.value) return;
+                    const url = new URL(window.location.origin);
+                    url.pathname = '/municipality/' + this.value;
+                    const electionId = electionSelect ? electionSelect.value : '{{ current_election_id }}';
+                    if (electionId) url.searchParams.set('election_id', electionId);
+                    window.location.href = url.toString();
+                });
+            }
+        })();
+    </script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

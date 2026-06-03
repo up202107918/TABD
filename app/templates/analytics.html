@@ -164,7 +164,8 @@
 {% block extra_js %}
 <script>
     // Fetch party comparison data
-    fetch('/api/charts/party_comparison')
+    const electionId = {{ current_election_id or 'null' }};
+    fetch('/api/charts/party_comparison?election_id=' + electionId)
         .then(response => response.json())
         .then(data => {
             createCharts(data);

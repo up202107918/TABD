@@ -22,6 +22,23 @@ DATASETS: Dict[str, Dict[str, Any]] = {
 
 DEFAULT_DATASET = 'aut_2021'
 
+# CAOP shapefiles (manual download to etl/data/caop/ — see etl/data/caop/README.md)
+CAOP_DATA_DIR = os.path.join(DATA_DIR, 'caop')
+CAOP_DOWNLOAD_URLS = [
+    # Official URL (often returns 404 — kept for reference)
+    'https://www.dgterritorio.gov.pt/sites/default/files/ficheiros-cartografia/CAOP2021_SHP_AAD-ETRS89.zip',
+]
+
+# Fallback: GeoJSON derived from DGT CAOP WFS (nmota/caop_GeoJSON on GitHub)
+CAOP_FALLBACK_GEOJSON = {
+    'ContinenteDistritos.geojson': (
+        'https://raw.githubusercontent.com/nmota/caop_GeoJSON/master/ContinenteDistritos.geojson'
+    ),
+    'Portugal_Municipalities.geojson': (
+        'https://raw.githubusercontent.com/nmota/caop_GeoJSON/master/Portugal_Municipalities.geojson'
+    ),
+}
+
 DB_CONFIG: Dict[str, str] = {
     'host': os.getenv('DB_HOST', 'localhost'),
     'port': os.getenv('DB_PORT', '5432'),

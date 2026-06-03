@@ -26,6 +26,12 @@ etl/data/downloads/*
 etl/data/extracted/*
 etl/data/processed/*
 etl/data/logs/*.log
+etl/data/caop/*.geojson
+etl/data/caop/*.zip
+etl/data/caop/**/*.shp
+etl/data/caop/**/*.dbf
+etl/data/caop/**/*.shx
+etl/data/caop/**/*.prj
 !etl/data/downloads/.gitkeep
 !etl/data/extracted/.gitkeep
 !etl/data/processed/.gitkeep

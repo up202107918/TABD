@@ -7,8 +7,8 @@
     <!-- Breadcrumb -->
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="/">Home</a></li>
-            <li class="breadcrumb-item"><a href="/districts">Districts</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('index', election_id=current_election_id) }}">Home</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('districts', election_id=current_election_id) }}">Districts</a></li>
             <li class="breadcrumb-item">{{ municipality.district_name }}</li>
             <li class="breadcrumb-item active">{{ municipality.municipality_name }}</li>
         </ol>
@@ -19,7 +19,7 @@
         <div class="container">
             <h1>{{ municipality.municipality_name }}</h1>
             <p class="lead">{{ municipality.district_name }} District</p>
-            <p>Local Elections 2021 - Câmara Municipal</p>
+            <p>{% if current_election %}{{ current_election.election_year }}{% endif %} — Câmara Municipal</p>
         </div>
     </div>
     

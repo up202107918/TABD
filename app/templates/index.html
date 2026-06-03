@@ -6,8 +6,8 @@
 <!-- Hero Section -->
 <div class="hero-section">
     <div class="container">
-        <h1 class="display-4">Portuguese Local Elections 2021</h1>
-        <p class="lead">Comprehensive analysis of Autárquicas 2021 results</p>
+        <h1 class="display-4">Portuguese Local Elections{% if current_election %} {{ current_election.election_year }}{% endif %}</h1>
+        <p class="lead">{{ current_election.description if current_election else 'Election analytics' }}</p>
         <p>Explore election data across Portugal's districts, municipalities, and parishes</p>
     </div>
 </div>
@@ -51,7 +51,7 @@
                 <div class="card-body">
                     <h5 class="card-title">📍 Browse by District</h5>
                     <p class="card-text">View election results organized by Portuguese districts</p>
-                    <a href="/districts" class="btn btn-primary">View Districts</a>
+                    <a href="{{ url_for('districts', election_id=current_election_id) }}" class="btn btn-primary">View Districts</a>
                 </div>
             </div>
         </div>
@@ -155,7 +155,8 @@
     }).addTo(map);
     
     // Load districts GeoJSON
-    fetch('/api/map/districts')
+    const electionId = {{ current_election_id or 'null' }};
+    fetch('/api/map/districts?election_id=' + electionId)
         .then(response => response.json())
         .then(data => {
             L.geoJSON(data, {
@@ -175,12 +176,12 @@
                         <strong>${props.name}</strong><br>
                         Average Turnout: ${props.avg_turnout ? props.avg_turnout.toFixed(2) : 'N/A'}%<br>
                         Municipalities: ${props.municipalities}<br>
-                        <a href="/district/${feature.id}">View Details</a>
+                        <a href="/district/${feature.id}?election_id=${electionId}">View Details</a>
                     `;
                     layer.bindPopup(popupContent);
                     
                     layer.on('click', function() {
-                        window.location.href = '/district/' + feature.id;
+                        window.location.href = '/district/' + feature.id + '?election_id=' + electionId;
                     });
                 }
             }).addTo(map);

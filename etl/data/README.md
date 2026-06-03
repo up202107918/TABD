@@ -42,7 +42,10 @@ Historical datasets in this repo (2013, 2017, 2025) were added manually from CNE
 
 ```bash
 cd etl
-# Recommended (loads only aut_2021 folder):
+# Full pipeline (extract + operational + warehouse):
+python run_etl.py --dataset aut_2021 --mode full
+
+# Staging only (Excel to staging tables):
 python run_etl.py --dataset aut_2021 --mode staging-only
 
 # Legacy wrapper (same as staging-only for aut_2021):

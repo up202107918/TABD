@@ -7,8 +7,8 @@
     <!-- Breadcrumb -->
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="/">Home</a></li>
-            <li class="breadcrumb-item"><a href="/districts">Districts</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('index', election_id=current_election_id) }}">Home</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('districts', election_id=current_election_id) }}">Districts</a></li>
             <li class="breadcrumb-item active">{{ district.district_name }}</li>
         </ol>
     </nav>
@@ -18,7 +18,7 @@
         <div class="container">
             <h1>{{ district.district_name }}</h1>
             <p class="lead">District Code: {{ district.district_code }}</p>
-            <p>Local Elections 2021 Results</p>
+            <p>{% if current_election %}{{ current_election.description or current_election.election_year }}{% else %}Election results{% endif %}</p>
         </div>
     </div>
     
@@ -107,7 +107,7 @@
                                     {% endif %}
                                 </td>
                                 <td class="text-end">
-                                    <a href="/municipality/{{ muni.municipality_id }}" class="btn btn-sm btn-primary">Details</a>
+                                    <a href="{{ url_for('municipality_detail', municipality_id=muni.municipality_id, election_id=current_election_id) }}" class="btn btn-sm btn-primary">Details</a>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -153,6 +153,7 @@
     
     // Initialize municipalities map
     const districtId = {{ district.district_id }};
+    const electionId = {{ current_election_id or 'null' }};
     const map = L.map('municipalitiesMap').setView([39.5, -8.0], 8);
     
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -161,7 +162,7 @@
     }).addTo(map);
     
     // Load municipalities for this district
-    fetch(`/api/map/municipalities/${districtId}`)
+    fetch(`/api/map/municipalities/${districtId}?election_id=${electionId}`)
         .then(response => response.json())
         .then(data => {
             const geoJsonLayer = L.geoJSON(data, {
@@ -181,12 +182,12 @@
                         <strong>${props.name}</strong><br>
                         Turnout: ${props.turnout ? props.turnout.toFixed(2) : 'N/A'}%<br>
                         Winner: ${props.winner || 'N/A'}<br>
-                        <a href="/municipality/${feature.id}">View Details</a>
+                        <a href="/municipality/${feature.id}?election_id=${electionId}">View Details</a>
                     `;
                     layer.bindPopup(popupContent);
                     
                     layer.on('click', function() {
-                        window.location.href = '/municipality/' + feature.id;
+                        window.location.href = '/municipality/' + feature.id + '?election_id=' + electionId;
                     });
                 }
             }).addTo(map);
