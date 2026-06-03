@@ -134,9 +134,10 @@ Functions, PL/pgSQL, and triggers in `sql/03_functions_triggers.sql` (e.g. D'Hon
 
 ## Web application
 
-- **Stack:** Flask, psycopg2 (explicit SQL, no ORM), Bootstrap 5, Leaflet, Chart.js  
+- **Stack:** Flask, psycopg2 (explicit SQL, no ORM), Bootstrap 5, Leaflet, Chart.js, **Matplotlib** (server PNG)  
 - **Routes:** home map, districts, municipality detail, analytics dashboard  
 - **API:** GeoJSON districts/municipalities; `party_comparison` (one year); `election_comparison` (two years, CM national totals)  
+- **Matplotlib:** `GET /analytics/chart.png?metric=votes|seats&election_id=…` — SQL → PNG; export: `python scripts/export_charts.py`  
 - **Requirement:** election + territorial unit selection — navbar + query string; cross-year compare on `/analytics` when ≥2 elections in DB  
 
 ---

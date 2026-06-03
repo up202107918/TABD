@@ -18,7 +18,7 @@ Use this file as the single backlog. Technical ETL details: [etl/README.md](etl/
 | SQL functions / PL/pgSQL / triggers | `[x]` `sql/03` | `[~]` demo on fresh DB |
 | Analytical SQL (D'Hondt, windows, ROLLUP, CUBE) | `[x]` `sql/04` | `[~]` run on DB; outputs in `docs/sql_outputs/demo_results.txt` |
 | PostGIS + Flask maps | `[x]` | `[~]` islands geometry gap |
-| Flask psycopg2 + selectors + tables + charts | `[x]` | `[~]` see §5.5 Python charts |
+| Flask psycopg2 + selectors + tables + charts | `[x]` | `[x]` Chart.js + Matplotlib `/analytics/chart.png` |
 | Deliverables (`docs/`, `slides/`) | `[ ]` | **blocking** |
 
 ---
@@ -104,7 +104,7 @@ Required by the assignment or Moodle submission. Without these, the project is i
 | `[x]` | User selects **election** + **territorial unit** (navbar + URLs) | §5.6 |
 | `[x]` | **Results table** on municipality (and related) pages | §5.6 |
 | `[x]` | ≥**2 meaningful visual outputs** per relevant page (Chart.js charts) | §5.6 |
-| `[ ]` | **Charts from DB via Python + plotting library** (Matplotlib or Plotly) — assignment recommends this explicitly; Chart.js alone is JS. Add e.g. `app/charts.py` or `/analytics/chart.png` route, or a documented `scripts/export_charts.py` used in report | §3, §5.5 |
+| `[x]` | **Charts from DB via Python + Matplotlib** — `app/charts.py`, `/analytics/chart.png`, `scripts/export_charts.py` → `docs/screenshots/` | §3, §5.5 |
 | `[~]` | **Map interacts with interface** — today: click → navigate. Confirm with instructor or add same-page update (district click → load municipality stats via API without full reload) | §5.6 |
 | `[ ]` | Screenshots proving map + charts + table on same flow | §7 |
 
@@ -114,7 +114,7 @@ Required by the assignment or Moodle submission. Without these, the project is i
 |--------|------|-----|
 | `[x]` | PostgreSQL + PostGIS + Python + psycopg2 | §3 mandatory |
 | `[x]` | Leaflet for maps | §3 recommended |
-| `[ ]` | Matplotlib **or** Plotly for charts (server-side generation) | §3 recommended, §5.5 |
+| `[x]` | Matplotlib for charts (server-side `/analytics/chart.png` + export script) | §3 recommended, §5.5 |
 
 ---
 

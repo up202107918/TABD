@@ -92,7 +92,38 @@
     <div class="row mb-4">
         <div class="col-md-12">
             <h2 class="mb-3">National Party Performance{% if current_election %} ({{ current_election.election_year }}){% endif %}</h2>
+            <p class="text-muted small mb-0">
+                Chart.js (browser) below; Matplotlib PNG from PostgreSQL via
+                <code>/analytics/chart.png</code> (server-side, assignment §5.5).
+            </p>
         </div>
+
+        {% if current_election_id %}
+        <div class="col-md-6 mb-3">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Matplotlib — votes by party</h5>
+                </div>
+                <div class="card-body text-center p-2">
+                    <img src="{{ url_for('analytics_chart_png', metric='votes', election_id=current_election_id) }}"
+                         alt="Votes by party (Matplotlib)"
+                         class="img-fluid border rounded">
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 mb-3">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Matplotlib — seats by party</h5>
+                </div>
+                <div class="card-body text-center p-2">
+                    <img src="{{ url_for('analytics_chart_png', metric='seats', election_id=current_election_id) }}"
+                         alt="Seats by party (Matplotlib)"
+                         class="img-fluid border rounded">
+                </div>
+            </div>
+        </div>
+        {% endif %}
         
         <div class="col-md-6">
             <div class="card">

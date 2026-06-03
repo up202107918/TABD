@@ -10,7 +10,13 @@ from typing import Dict, List, Optional
 
 import psycopg2
 import psycopg2.extras
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, render_template, request, send_file
+
+from charts import (
+    fetch_election_year,
+    fetch_party_comparison_rows,
+    render_party_bar_chart,
+)
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from etl.config import DB_CONFIG
@@ -479,28 +485,31 @@ def api_charts_election_comparison():
     })
 
 
+@app.route('/analytics/chart.png')
+def analytics_chart_png():
+    """Matplotlib bar chart from PostgreSQL (assignment §5.5). Query: ?metric=votes|seats"""
+    import io
+
+    election_id = resolve_election_id()
+    if not election_id:
+        return 'No election selected', 404
+
+    metric = request.args.get('metric', 'votes')
+    rows = fetch_party_comparison_rows(DB_CONFIG, election_id)
+    year = fetch_election_year(DB_CONFIG, election_id)
+    png = render_party_bar_chart(rows, metric=metric, election_year=year)
+    return send_file(
+        io.BytesIO(png),
+        mimetype='image/png',
+        download_name=f'party_{metric}.png',
+        max_age=60,
+    )
+
+
 @app.route('/api/charts/party_comparison')
 def api_charts_party_comparison():
     election_id = resolve_election_id()
-    results = execute_query(
-        """
-        SELECT COALESCE(p.party_acronym, co.coalition_acronym) AS party,
-               SUM(vr.votes_obtained) AS total_votes,
-               SUM(COALESCE(sr.seats_obtained, 0)) AS total_seats,
-               ROUND(AVG(vr.vote_percentage), 2) AS avg_percentage
-        FROM operational.candidacy c
-        LEFT JOIN operational.party p ON c.party_id = p.party_id
-        LEFT JOIN operational.coalition co ON c.coalition_id = co.coalition_id
-        JOIN operational.vote_result vr ON c.candidacy_id = vr.candidacy_id
-        LEFT JOIN operational.seat_result sr ON c.candidacy_id = sr.candidacy_id
-        WHERE c.election_id = %s AND c.organ_id = ({organ})
-        GROUP BY COALESCE(p.party_acronym, co.coalition_acronym)
-        HAVING SUM(vr.votes_obtained) > 1000
-        ORDER BY total_votes DESC
-        LIMIT 10
-        """.format(organ=ORGAN_CM_SUBQUERY),
-        (election_id,),
-    )
+    results = fetch_party_comparison_rows(DB_CONFIG, election_id)
 
     return jsonify({
         'parties': [r['party'] for r in results],
