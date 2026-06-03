@@ -176,6 +176,7 @@ Functions, PL/pgSQL, and triggers in `sql/03_functions_triggers.sql` (e.g. D'Hon
 - ~50 municipalities in CNE mapa_2 may be absent from mapa_1 ETL (no votes / seats in DB).  
 - CAOP fallback GeoJSON covers **continent**; islands may lack geometry until official shapefiles are added.  
 - If turnout shows **0% / N/A** after an older ETL run: `python scripts/fix_turnout_percentages.py` (or re-run `run_etl.py --mode reload-operational`). Bulk load skips triggers, so percentages must be computed explicitly.  
+- If **seats charts are empty**: load CNE mapa_2 into `seat_result` — `python scripts/load_seats.py --dataset aut_2021` (after operational votes exist).  
 - No authentication; batch ETL only (not live election night).  
 
 Details and future tasks: **[todo.md](todo.md)**.

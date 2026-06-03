@@ -18,7 +18,8 @@ ORGAN_CM_SUBQUERY = (
     "SELECT organ_id FROM operational.electoral_organ WHERE organ_code = 'CM'"
 )
 
-PARTY_COMPARISON_SQL = f"""
+def _party_comparison_sql(order_by: str, having_clause: str, limit: int) -> str:
+    return f"""
     SELECT COALESCE(p.party_acronym, co.coalition_acronym) AS party,
            SUM(vr.votes_obtained) AS total_votes,
            SUM(COALESCE(sr.seats_obtained, 0)) AS total_seats,
@@ -30,10 +31,22 @@ PARTY_COMPARISON_SQL = f"""
     LEFT JOIN operational.seat_result sr ON c.candidacy_id = sr.candidacy_id
     WHERE c.election_id = %s AND c.organ_id = ({ORGAN_CM_SUBQUERY})
     GROUP BY COALESCE(p.party_acronym, co.coalition_acronym)
-    HAVING SUM(vr.votes_obtained) > 1000
-    ORDER BY total_votes DESC
-    LIMIT 10
-"""
+    {having_clause}
+    ORDER BY {order_by} DESC
+    LIMIT {limit}
+    """
+
+
+PARTY_VOTES_SQL = _party_comparison_sql(
+    "total_votes",
+    "HAVING SUM(vr.votes_obtained) > 1000",
+    10,
+)
+PARTY_SEATS_SQL = _party_comparison_sql(
+    "total_seats",
+    "HAVING SUM(COALESCE(sr.seats_obtained, 0)) > 0",
+    12,
+)
 
 
 PARTY_COLORS = [
@@ -53,15 +66,17 @@ PARTY_COLORS = [
 def fetch_party_comparison_rows(
     db_config: Dict[str, str],
     election_id: int,
+    metric: str = "votes",
 ) -> List[Dict[str, Any]]:
     import psycopg2
     import psycopg2.extras
 
+    sql = PARTY_SEATS_SQL if metric == "seats" else PARTY_VOTES_SQL
     conn = psycopg2.connect(**db_config)
     try:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             cur.execute("SET search_path TO operational, public")
-            cur.execute(PARTY_COMPARISON_SQL, (election_id,))
+            cur.execute(sql, (election_id,))
             return [dict(row) for row in cur.fetchall()]
     finally:
         conn.close()
@@ -95,29 +110,43 @@ def render_party_bar_chart(
     if metric not in ("votes", "seats"):
         metric = "votes"
 
+    if metric == "seats":
+        values_key = "total_seats"
+        xlabel = "Total seats (CM, all municipalities)"
+        title_metric = "Seats by party"
+        empty_msg = (
+            "No seat data in database.\n"
+            "Run: python scripts/load_seats.py --dataset aut_2021"
+        )
+    else:
+        values_key = "total_votes"
+        xlabel = "Total votes (CM, all municipalities)"
+        title_metric = "Votes by party"
+        empty_msg = "No vote data for this election."
+
     if not rows:
         fig, ax = plt.subplots(figsize=(8, 4))
-        ax.text(0.5, 0.5, "No data", ha="center", va="center")
+        ax.text(0.5, 0.5, empty_msg, ha="center", va="center", fontsize=10)
         ax.axis("off")
     else:
         parties = [str(r["party"]) for r in rows]
-        if metric == "seats":
-            values = [int(r["total_seats"]) for r in rows]
-            xlabel = "Total seats (CM, all municipalities)"
-            title_metric = "Seats by party"
-        else:
-            values = [int(r["total_votes"]) for r in rows]
-            xlabel = "Total votes (CM, all municipalities)"
-            title_metric = "Votes by party"
+        values = [int(r[values_key] or 0) for r in rows]
 
-        colors = PARTY_COLORS[: len(parties)]
-        fig, ax = plt.subplots(figsize=(9, max(4, len(parties) * 0.45)))
-        bars = ax.barh(parties[::-1], values[::-1], color=colors[::-1])
-        ax.set_xlabel(xlabel)
-        year_suffix = f" — Autárquicas {election_year}" if election_year else ""
-        ax.set_title(f"{title_metric}{year_suffix}")
-        ax.bar_label(bars, padding=4, fmt="%d")
-        fig.tight_layout()
+        if max(values) == 0:
+            fig, ax = plt.subplots(figsize=(8, 4))
+            ax.text(0.5, 0.5, empty_msg, ha="center", va="center", fontsize=10)
+            ax.axis("off")
+        else:
+            colors = PARTY_COLORS[: len(parties)]
+            fig, ax = plt.subplots(figsize=(9, max(4, len(parties) * 0.45)))
+            bars = ax.barh(parties[::-1], values[::-1], color=colors[::-1])
+            ax.set_xlabel(xlabel)
+            year_suffix = f" — Autárquicas {election_year}" if election_year else ""
+            ax.set_title(f"{title_metric}{year_suffix}")
+            xmax = max(values)
+            ax.set_xlim(0, xmax * 1.12 if xmax > 0 else 1)
+            ax.bar_label(bars, padding=4, fmt="%d")
+            fig.tight_layout()
 
     buf = io.BytesIO()
     fig.savefig(buf, format="png", dpi=120, bbox_inches="tight")

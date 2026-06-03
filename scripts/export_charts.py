@@ -56,8 +56,6 @@ def main() -> int:
 
     election_id = args.election_id or resolve_default_election_id()
     year = fetch_election_year(DB_CONFIG, election_id)
-    rows = fetch_party_comparison_rows(DB_CONFIG, election_id)
-
     OUT_DIR.mkdir(parents=True, exist_ok=True)
 
     exports = [
@@ -65,6 +63,7 @@ def main() -> int:
         ("matplotlib_analytics_seats.png", "seats"),
     ]
     for filename, metric in exports:
+        rows = fetch_party_comparison_rows(DB_CONFIG, election_id, metric=metric)
         png = render_party_bar_chart(rows, metric=metric, election_year=year)
         dest = OUT_DIR / filename
         write_chart_png(str(dest), png)

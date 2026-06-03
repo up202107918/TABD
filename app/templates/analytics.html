@@ -280,8 +280,14 @@
     // Fetch party comparison data (single election — navbar selection)
     const electionId = {{ current_election_id or 'null' }};
     fetch('/api/charts/party_comparison?election_id=' + electionId)
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('party_comparison HTTP ' + response.status);
+            }
+            return response.json();
+        })
         .then(data => {
+            if (!data.parties || data.parties.length === 0) return;
             createCharts(data);
         })
         .catch(error => console.error('Error loading chart data:', error));

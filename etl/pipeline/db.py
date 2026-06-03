@@ -18,6 +18,11 @@ def connect():
             password=DB_CONFIG['password'],
         )
         conn.set_client_encoding('UTF8')
+        with conn.cursor() as cur:
+            cur.execute(
+                'SET search_path TO staging, operational, warehouse, public'
+            )
+        conn.commit()
         return conn
     except Exception as exc:
         logging.error('Database connection failed: %s', exc)

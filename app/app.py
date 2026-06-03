@@ -532,7 +532,7 @@ def analytics_chart_png():
         return 'No election selected', 404
 
     metric = request.args.get('metric', 'votes')
-    rows = fetch_party_comparison_rows(DB_CONFIG, election_id)
+    rows = fetch_party_comparison_rows(DB_CONFIG, election_id, metric=metric)
     year = fetch_election_year(DB_CONFIG, election_id)
     png = render_party_bar_chart(rows, metric=metric, election_year=year)
     return send_file(
@@ -546,13 +546,22 @@ def analytics_chart_png():
 @app.route('/api/charts/party_comparison')
 def api_charts_party_comparison():
     election_id = resolve_election_id()
-    results = fetch_party_comparison_rows(DB_CONFIG, election_id)
+    vote_rows = fetch_party_comparison_rows(DB_CONFIG, election_id, metric='votes')
+    seat_rows = fetch_party_comparison_rows(DB_CONFIG, election_id, metric='seats')
+    # Align Chart.js series: seats by party name from vote ranking, fallback 0
+    seats_by_party = {r['party']: int(r['total_seats']) for r in seat_rows}
 
     return jsonify({
-        'parties': [r['party'] for r in results],
-        'votes': [int(r['total_votes']) for r in results],
-        'seats': [int(r['total_seats']) for r in results],
-        'percentages': [float(r['avg_percentage']) if r['avg_percentage'] else 0 for r in results],
+        'parties': [r['party'] for r in vote_rows],
+        'votes': [int(r['total_votes']) for r in vote_rows],
+        'seats': [seats_by_party.get(r['party'], 0) for r in vote_rows],
+        'seats_by_party': [
+            {'party': r['party'], 'seats': int(r['total_seats'])}
+            for r in seat_rows
+        ],
+        'percentages': [
+            float(r['avg_percentage']) if r['avg_percentage'] else 0 for r in vote_rows
+        ],
     })
 
 
