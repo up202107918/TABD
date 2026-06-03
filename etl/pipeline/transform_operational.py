@@ -96,6 +96,14 @@ def ensure_election(conn, cfg: Dict[str, Any]) -> int:
         row = cur.fetchone()
         if row:
             election_id = row[0]
+            cur.execute(
+                """
+                UPDATE operational.election
+                SET description = %s, election_date = %s::date
+                WHERE election_id = %s
+                """,
+                (cfg['description'], cfg['election_date'], election_id),
+            )
         else:
             cur.execute(
                 """

@@ -17,12 +17,23 @@ from charts import (
     fetch_party_comparison_rows,
     render_party_bar_chart,
 )
+from text_utils import repair_utf8_cp1250_mojibake
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from etl.config import DB_CONFIG
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'election-analytics-secret-key-change-in-production'
+app.config['JSON_AS_ASCII'] = False
+
+
+@app.after_request
+def add_utf8_charset(response):
+    """Ensure HTML/JSON responses declare UTF-8 (Portuguese diacritics)."""
+    content_type = response.headers.get('Content-Type', '')
+    if content_type.startswith('text/') and 'charset=' not in content_type.lower():
+        response.headers['Content-Type'] = f'{content_type}; charset=utf-8'
+    return response
 
 ORGAN_CM_SUBQUERY = (
     "SELECT organ_id FROM operational.electoral_organ WHERE organ_code = 'CM'"
@@ -30,7 +41,9 @@ ORGAN_CM_SUBQUERY = (
 
 
 def get_db_connection():
-    return psycopg2.connect(**DB_CONFIG)
+    conn = psycopg2.connect(**DB_CONFIG)
+    conn.set_client_encoding('UTF8')
+    return conn
 
 
 def execute_query(query: str, params: Optional[tuple] = None) -> List[Dict]:
@@ -44,7 +57,7 @@ def execute_query(query: str, params: Optional[tuple] = None) -> List[Dict]:
 
 
 def fetch_elections() -> List[Dict]:
-    return execute_query(
+    rows = execute_query(
         """
         SELECT e.election_id, e.election_year, e.description, et.type_name
         FROM operational.election e
@@ -52,6 +65,10 @@ def fetch_elections() -> List[Dict]:
         ORDER BY e.election_year DESC
         """
     )
+    for row in rows:
+        row['description'] = repair_utf8_cp1250_mojibake(row.get('description'))
+        row['type_name'] = repair_utf8_cp1250_mojibake(row.get('type_name'))
+    return rows
 
 
 def resolve_comparison_election_ids(
