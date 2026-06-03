@@ -21,6 +21,9 @@ def psql_env() -> dict[str, str]:
     env = os.environ.copy()
     env["PGPASSWORD"] = DB_CONFIG["password"]
     env["PGCLIENTENCODING"] = "UTF8"
+    # English psql NOTICE/ERROR messages (avoid Polish locale on Windows installs)
+    env["LC_MESSAGES"] = "C"
+    env["LANG"] = "C"
     return env
 
 

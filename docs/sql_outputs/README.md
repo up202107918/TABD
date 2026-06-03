@@ -18,8 +18,11 @@ $env:DB_NAME="election_analytics"
 $env:DB_USER="postgres"
 $env:DB_PASSWORD="your_password"
 $env:PGCLIENTENCODING="UTF8"
+$env:LC_MESSAGES="C"
 .\.venv\Scripts\python.exe scripts\run_sql_demos.py
 ```
+
+`run_sql_demos.py` sets `LC_MESSAGES=C` so psql logs in `_apply_log.txt` use English NOTICE/ERROR text (not a Polish Windows locale).
 
 After a full ETL reload or `seat_result` load, always re-run the script so `demo_results.txt` reflects current data.
 

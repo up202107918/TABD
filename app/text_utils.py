@@ -1,5 +1,5 @@
 """
-Repair Portuguese text corrupted by UTF-8 bytes mis-decoded as Windows-1250 (common on PL Windows).
+Repair Portuguese text corrupted by UTF-8 bytes mis-decoded as Windows-1250.
 """
 
 

@@ -118,7 +118,7 @@ Required by the assignment or Moodle submission. Without these, the project is i
 
 ---
 
-## 2. Wysoka wartość dodana (SHOULD)
+## 2. High value add-ons (SHOULD)
 
 Not strictly blocking minimum scope, but strong impact on grade (rubric) and presentation.
 
@@ -160,7 +160,7 @@ Not strictly blocking minimum scope, but strong impact on grade (rubric) and pre
 
 ---
 
-## 3. Opcjonalne (NICE TO HAVE)
+## 3. Optional (NICE TO HAVE)
 
 Extensions beyond minimum; do only if time remains.
 
