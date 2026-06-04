@@ -37,7 +37,10 @@ DISTRICT_CODES = {
     'Viseu': '18',
     'Acores': '20',
     'Açores': '20',
+    'R.A. Açores': '20',
+    'R.A. Acores': '20',
     'Madeira': '30',
+    'R.A. Madeira': '30',
 }
 
 
@@ -60,8 +63,12 @@ def district_code_for(name: str) -> str:
         key_plain = unicodedata.normalize('NFKD', key).encode('ASCII', 'ignore').decode('utf-8')
         if key_plain.lower() == plain.lower():
             return code
-    slug = re.sub(r'[^A-Z0-9]', '', plain.upper())[:2] or '99'
-    return slug.zfill(2)
+    slug = re.sub(r'[^A-Z0-9]', '', plain.upper())
+    if 'ACORES' in slug or 'AZORES' in slug:
+        return '20'
+    if 'MADEIRA' in slug:
+        return '30'
+    return (slug[:2] or '99').zfill(2)
 
 
 def clear_election_data(conn, election_id: int) -> None:
@@ -159,6 +166,22 @@ def fetch_territory_pairs(conn) -> List[Tuple[str, str]]:
 def load_territories(conn) -> Dict[Tuple[str, str], int]:
     """Insert districts and municipalities; return (distrito, concelho) -> municipality_id."""
     pairs = fetch_territory_pairs(conn)
+
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT NOT (
+                EXISTS (SELECT 1 FROM operational.candidacy LIMIT 1)
+                OR EXISTS (SELECT 1 FROM operational.turnout LIMIT 1)
+            )
+            """
+        )
+        if cur.fetchone()[0]:
+            cur.execute('DELETE FROM operational.municipality')
+            cur.execute('DELETE FROM operational.district')
+            conn.commit()
+            logging.info('Territorial tables cleared before rebuild (no candidacy/turnout rows)')
+
     district_ids: Dict[str, int] = {}
     municipality_ids: Dict[Tuple[str, str], int] = {}
     per_district_counter: Dict[str, int] = defaultdict(int)
@@ -260,26 +283,34 @@ def load_turnout(conn, election_id: int, organ_id: int, municipality_ids: Dict[T
     with conn.cursor() as cur:
         cur.execute(
             """
-            SELECT distrito, concelho, eleitores_inscritos, votantes,
-                   votos_validos, votos_brancos, votos_nulos
+            SELECT DISTINCT ON (distrito, concelho)
+                distrito, concelho, eleitores_inscritos, votantes,
+                votos_validos, votos_brancos, votos_nulos
             FROM staging.stg_turnout_data
             WHERE concelho IS NOT NULL AND UPPER(COALESCE(orgao, '')) = 'CM'
+            ORDER BY distrito, concelho, row_id DESC
             """
         )
         for row in cur.fetchall():
             muni_id = municipality_ids.get((row[0], row[1]))
             if not muni_id:
                 continue
-            valid = row[4] if row[4] is not None else max(0, (row[2] or 0) - (row[5] or 0) - (row[6] or 0))
             reg = row[2] or 0
+            blank = row[5] or 0
+            null_votes = row[6] or 0
+            valid = row[4] if row[4] is not None else max(0, reg - blank - null_votes)
             vot = row[3]
+            if vot is None and valid is not None:
+                vot = valid + blank + null_votes
+            if reg <= 0 or vot is None:
+                continue
             turnout_pct = abstention_pct = blank_pct = null_pct = None
             if reg > 0 and vot is not None:
                 turnout_pct = round(100.0 * vot / reg, 2)
                 abstention_pct = round(100.0 * (reg - vot) / reg, 2)
             if vot and vot > 0:
-                blank_pct = round(100.0 * (row[5] or 0) / vot, 2)
-                null_pct = round(100.0 * (row[6] or 0) / vot, 2)
+                blank_pct = round(100.0 * blank / vot, 2)
+                null_pct = round(100.0 * null_votes / vot, 2)
             cur.execute(
                 """
                 INSERT INTO operational.turnout (
@@ -290,8 +321,8 @@ def load_turnout(conn, election_id: int, organ_id: int, municipality_ids: Dict[T
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
-                    election_id, organ_id, muni_id, row[2], row[3], valid,
-                    row[5] or 0, row[6] or 0,
+                    election_id, organ_id, muni_id, reg, vot, valid,
+                    blank, null_votes,
                     turnout_pct, abstention_pct, blank_pct, null_pct,
                 ),
             )

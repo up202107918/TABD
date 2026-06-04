@@ -315,12 +315,12 @@ BEGIN
     UPDATE turnout
     SET 
         turnout_percentage = CASE 
-            WHEN registered_voters > 0 
+            WHEN registered_voters > 0 AND COALESCE(votes_cast, 0) > 0
             THEN ROUND((votes_cast::NUMERIC / registered_voters) * 100, 2)
             ELSE NULL 
         END,
         abstention_percentage = CASE 
-            WHEN registered_voters > 0 
+            WHEN registered_voters > 0 AND COALESCE(votes_cast, 0) > 0
             THEN ROUND(((registered_voters - votes_cast)::NUMERIC / registered_voters) * 100, 2)
             ELSE NULL 
         END,
@@ -334,10 +334,15 @@ BEGIN
             THEN ROUND((null_votes::NUMERIC / votes_cast) * 100, 2)
             ELSE NULL 
         END
-    WHERE turnout_percentage IS NULL 
+    WHERE registered_voters > 0
+      AND COALESCE(votes_cast, 0) > 0
+      AND (
+        turnout_percentage IS NULL
+        OR turnout_percentage = 0
         OR abstention_percentage IS NULL
         OR blank_percentage IS NULL
-        OR null_percentage IS NULL;
+        OR null_percentage IS NULL
+      );
     
     GET DIAGNOSTICS v_count = ROW_COUNT;
     

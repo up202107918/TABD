@@ -39,16 +39,13 @@ ORGAN_CM_SUBQUERY = (
     "SELECT organ_id FROM operational.electoral_organ WHERE organ_code = 'CM'"
 )
 
-# ETL bulk load skips triggers; compute % from raw counts when column is NULL.
+# Prefer live counts over stored turnout_percentage (bulk ETL may leave 0/NULL).
 TURNOUT_PCT_EXPR = """
-COALESCE(
-    t.turnout_percentage,
-    CASE
-        WHEN t.registered_voters > 0 AND t.votes_cast IS NOT NULL
-        THEN ROUND(100.0 * t.votes_cast::NUMERIC / t.registered_voters, 2)
-        ELSE NULL
-    END
-)"""
+CASE
+    WHEN t.registered_voters > 0 AND COALESCE(t.votes_cast, 0) > 0
+    THEN ROUND(100.0 * t.votes_cast::NUMERIC / t.registered_voters, 2)
+    ELSE NULLIF(t.turnout_percentage, 0)
+END"""
 
 
 def get_db_connection():
@@ -144,7 +141,28 @@ def resolve_election_id(elections: Optional[List[Dict]] = None) -> Optional[int]
         return rows[0]['election_id'] if rows else None
 
     elections = elections if elections is not None else fetch_elections()
-    return elections[0]['election_id'] if elections else None
+    if not elections:
+        return None
+
+    # Default to the latest election that actually has CM turnout rows.
+    rows = execute_query(
+        """
+        SELECT e.election_id
+        FROM operational.election e
+        WHERE EXISTS (
+            SELECT 1 FROM operational.turnout t
+            WHERE t.election_id = e.election_id
+              AND t.organ_id = ({organ})
+              AND t.registered_voters > 0
+              AND COALESCE(t.votes_cast, 0) > 0
+        )
+        ORDER BY e.election_year DESC
+        LIMIT 1
+        """.format(organ=ORGAN_CM_SUBQUERY),
+    )
+    if rows:
+        return rows[0]['election_id']
+    return elections[0]['election_id']
 
 
 def fetch_municipalities_for_select() -> List[Dict]:
@@ -363,7 +381,9 @@ def api_map_districts():
                 'properties': {
                     'name': row['district_name'],
                     'code': row['district_code'],
-                    'avg_turnout': float(row['avg_turnout']) if row['avg_turnout'] else None,
+                    'avg_turnout': (
+                        float(row['avg_turnout']) if row['avg_turnout'] is not None else None
+                    ),
                     'municipalities': row['municipalities'],
                 },
                 'geometry': json.loads(row['geometry']),
@@ -410,7 +430,11 @@ def api_map_municipalities(district_id: int):
                 'properties': {
                     'name': row['municipality_name'],
                     'code': row['municipality_code'],
-                    'turnout': float(row['turnout_percentage']) if row['turnout_percentage'] else None,
+                    'turnout': (
+                        float(row['turnout_percentage'])
+                        if row['turnout_percentage'] is not None
+                        else None
+                    ),
                     'winner': row['winner'],
                 },
                 'geometry': json.loads(row['geometry']),
