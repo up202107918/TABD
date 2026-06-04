@@ -1,11 +1,42 @@
 \section{Development}
-So, for this project, we used the 2021 and 2017 Portuguese local elections as the basis.
-The data was sourced from the official election results provided by the Portuguese government, which 
-included detailed information on votes, candidacies, 
-parties, and municipalities. We designed a database 
-schema to efficiently store this data and implemented 
-an ETL pipeline to extract, transform, and load the 
-data into our database. 
+
+\subsection{Problem scope and chosen election datasets}
+Portuguese local election results are distributed as 
+multi-sheet CNE workbooks. Lists are often 
+identified by local codes (e.g. A, B in Lisboa 2021), 
+not only national party acronyms. Vote counts, turnout,
+ and mandates appear in different sheets; boundary files 
+ use another naming scheme. 
+ The project goal is a database-centred application: store data in a normalized schema and a warehouse, 
+ load it through a rerunnable ETL, expose non-trivial SQL 
+ (D'Hondt, window functions, ROLLUP, CUBE), and 
+ serve a thin web UI, in this case using Flask, that queries PostgreSQL with psycopg2 (no ORM).   \\
+ So, for this project, we chose to focus on the 2021 and 2017 local elections. 
+ \begin{itemize}
+        \item \textbf{2021 Local Elections:} This dataset includes detailed results from the 2021 local elections in Portugal, covering various municipalities and parties. It provides a comprehensive view of the electoral landscape during that period.
+        \item \textbf{2017 Local Elections:} This dataset contains results from the 2017 local elections, allowing us to analyze trends and changes in voter behavior and party performance over time.
+        \item \textbf{DGT CAOP 2021:} This dataset includes boundary files for the municipalities, which are essential for spatial analysis and visualization of election results.
+\end{itemize}
+\subsection{Operational Schema and Warehouse Design Rationale}
+The system uses three PostgreSQL schemas: staging 
+(\texttt{sql/05_staging_schema.sql}), operational (\texttt{sql/01_operational_schema.sql}),
+ and warehouse (\texttt{sql/02_warehouse_schema.sql}).  \\
+The following ER diagrams (obtained with pgAdmin's ERD tool) illustrate the design of the operational and warehouse schemas, 
+highlighting the relationships between tables and the overall structure of the database. The operational schema is designed to store raw and processed data for day-to-day operations, while the warehouse schema is optimized for analytical queries and reporting.
+\begin{figure}[h!]
+    \begin{center}
+    \includegraphics[width=10cm, height=9cm]{../er_diagrams/operational_schema_er.png}
+    \caption{Operational Schema ER Diagram}
+    \end{center}
+\end{figure}
+
+\begin{figure}[h!]
+    \begin{center}
+    \includegraphics[width=10cm, height=9cm]{../er_diagrams/warehouse_star_schema.png}
+    \caption{Warehouse Star Schema ER Diagram}
+    \end{center}
+\end{figure}
+
 
 \subsection{ETL Pipeline}
 
@@ -14,15 +45,15 @@ All functions, views, and triggers were implemented in PostgreSQL using PL/pgSQL
 \begin{itemize}
     \item \textbf{Functions:}
     \begin{itemize}
-        \item \texttt{calculate_vote_percentage(p_candidacy_id)}: Calculate vote percentage for a candidacy.
-        \item \texttt{get_party_performance_in_municipality(p_election_id, p_municipality_id,
+        \item \texttt{calculate_vote_percentage (p_candidacy_id)}: Calculate vote percentage for a candidacy.
+        \item \texttt{get_party_performance_in_municipality (p_election_id, p_municipality_id,
         p_party_acronym)}: Get the performance of a party in a specific municipality.
-        \item \texttt{get_top_parties(p_election_id, p_municipality_id, 
+        \item \texttt{get_top_parties (p_election_id, p_municipality_id, 
         p_organ_id, p_limit)}: Get the top parties in a specific municipality.
-        \item \texttt{allocate_seats_dhondt(p_election_id, p_organ_id, 
+        \item \texttt{allocate_seats_dhondt (p_election_id, p_organ_id, 
         p_municipality_id, p_total_seats)}: Allocate seats based on the D'Hondt method for a specific election and municipality.
-        \item \texttt{calculate_turnout_percentage()}: Calculate voter turnout percentage.
-        \item \texttt{get_or_create_party(p_party_acronym, p_party_name)}: 
+        \item \texttt{calculate_turnout_percentage ()}: Calculate voter turnout percentage.
+        \item \texttt{get_or_create_party (p_party_acronym, p_party_name)}: 
         Get or create a party based on its acronym and name.
     \end{itemize}
     \item \textbf{Views:}
@@ -49,17 +80,16 @@ After implementing the functions, views, and triggers,
  correctly and efficiently. We also analyzed the 
  results to gain insights into the election data, 
  such as identifying which parties had the most votes 
- and how the seats were allocated based on the D'Hondt method. \par 
+ and how the seats were allocated based on the D'Hondt method. \\ 
  Here are some examples of the analytical queries we used to test our functions and views:
 \begin{itemize}
-    \item D'Hondt Seat Allocation:
-    \begin{verbatim}
-
-    \end{verbatim}
-    \item Windows:
-    \begin{itemize}
-        \item 
-    \end{itemize}
+    \item analytical_query_1_party_rankings: 
+    \item analytical_query_2_district_comparison:
+    \item analytical_query_3_turnout_analysis:
+    \item analytical_query_4_rollup_hierarchical:
+    \item analytical_query_5_cube_multidimensional:
+    \item analytical_query_6_advanced_aggregates:
+    \item analytical_query_8_cross_district_comparison:
 \end{itemize}
 
 \subsection{Frontend Overview}
@@ -67,7 +97,11 @@ For the frontend, we used Flask to create a web application that allows users to
 The frontend provides a user-friendly interface to query the database and visualize the results, 
 such as displaying vote percentages and seat allocations in a more intuitive way. 
 \par In it, we 
-\subsection{Known Limitations}
+\subsection{Known Limitations and Possible Extensions}
+\begin{itemize}
+    \item We dealt with the elections only at the municipality level, but we could extend the system to parish level.
+    \item We could also include more elections, such as national or European elections, to provide a more comprehensive analysis of the electoral landscape in Portugal.
+\end{itemize}
 \subsection{Short Statement of Individual Contributions}
 \begin{itemize}
     \item \textbf{Amos Uwamusi:}
@@ -82,6 +116,7 @@ such as displaying vote percentages and seat allocations in a more intuitive way
         \item Designed and implemented the database schema to store the election data efficiently.
         \item Created functions to analyze party performance and get top parties in specific municipalities.
         \item Developed views to summarize election results by municipality and identify missing data.
+        \item Designed the finalversion of the Flask app.
     \end{itemize}
     \item \textbf{Sérgio Cardoso:}
     \begin{itemize}
