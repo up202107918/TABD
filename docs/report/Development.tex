@@ -1,36 +1,46 @@
 \section{Development}
-So, for this project, we used the 2025, 2021, 2017 and 2013 Portuguese local elections as the basis.
+So, for this project, we used the 2021 and 2017 Portuguese local elections as the basis.
+The data was sourced from the official election results provided by the Portuguese government, which 
+included detailed information on votes, candidacies, 
+parties, and municipalities. We designed a database 
+schema to efficiently store this data and implemented 
+an ETL pipeline to extract, transform, and load the 
+data into our database. 
+
 \subsection{ETL Pipeline}
+
 \subsection{Functions, Views, and Triggers}
 All functions, views, and triggers were implemented in PostgreSQL using PL/pgSQL.
 \begin{itemize}
     \item \textbf{Functions:}
-    We created several functions to perform various operations on the election data:
     \begin{itemize}
-        \item calculate_vote_percentage(p_candidacy_id): Calculate vote percentage for a candidacy.
-        \item get_party_performance_in_municipality(p_election_id, p_municipality_id,
-        p_party_acronym): Get the performance of a party in a specific municipality.
-        \item get_top_parties(p_election_id, p_municipality_id, 
-        p_organ_id, p_limit): Get the top parties in a specific municipality.
-        \item allocate_seats_dhondt(p_election_id, p_organ_id, 
-        p_municipality_id, p_total_seats): Allocate seats based on the D'Hondt method for a specific election and municipality.
-        \item calculate_turnout_percentage(): Calculate voter turnout percentage.
-
+        \item \texttt{calculate_vote_percentage(p_candidacy_id)}: Calculate vote percentage for a candidacy.
+        \item \texttt{get_party_performance_in_municipality(p_election_id, p_municipality_id,
+        p_party_acronym)}: Get the performance of a party in a specific municipality.
+        \item \texttt{get_top_parties(p_election_id, p_municipality_id, 
+        p_organ_id, p_limit)}: Get the top parties in a specific municipality.
+        \item \texttt{allocate_seats_dhondt(p_election_id, p_organ_id, 
+        p_municipality_id, p_total_seats)}: Allocate seats based on the D'Hondt method for a specific election and municipality.
+        \item \texttt{calculate_turnout_percentage()}: Calculate voter turnout percentage.
+        \item \texttt{get_or_create_party(p_party_acronym, p_party_name)}: 
+        Get or create a party based on its acronym and name.
     \end{itemize}
     \item \textbf{Views:}
     \begin{itemize}
-        \item H
-        \item Complete result with all dimension attributes (denormalized for easy querying) 
-        \item Complete candidacy information, including vote percentages and seat allocations.
-        \item Complete denormalized view of candidacy information with results
-        \item Do turnout percentages for each election and municipality.
-        \item 
+        \item \texttt{vw_complete_results}: A view that provides complete election results, including vote counts, percentages, and seat allocations for each candidacy.
+        \item \texttt{vw_turnout_analysis}: A view that provides turnout analysis for each election and municipality.
+        \item \texttt{vw_candidacy_details}: A view that provides complete candidacy information, including vote percentages and seat allocations.
+        \item \texttt{vw_municipality_summary}: A view that summarizes election results by municipality, including total votes, turnout, and seat allocations.
+        \item \texttt{vw_stg_missing_data}: A view that identifies any missing data in the staging tables, such as missing votes or candidacy information.
+        \item \texttt{vw_stg_potential_duplicates}: A view that identifies potential duplicate records in the staging tables, such as duplicate votes or candidacies.
     \end{itemize}
     \item \textbf{Triggers:}
     \begin{itemize}
-        \item Automatically create turnout percentages on INSERT or UPDATE of votes.
-        \item Automatically vote percentages on INSERT or UPDATE of votes.
-        \item Audit log for important table changes (e.g., when a new election is added or when votes are updated).
+        \item \texttt{trg_turnout_percentages}: Automatically create turnout percentages on INSERT or UPDATE of votes.
+        \item \texttt{trg_vote_percentages}: Automatically vote percentages on INSERT or UPDATE of votes.
+        \item \texttt{trg_audit_log}: Audit log for important table changes (e.g., when a new election is added or when votes are updated).
+        \item \texttt{trg_audit_candidacy}: Audit log for candidacy changes (e.g., when a new candidacy is added or updated).
+        \item \texttt{trg_audit_vote_result}: Audit log for vote result changes (e.g., when votes are updated or when seat allocations are changed).
     \end{itemize}
 \end{itemize}
 \subsection{Analytical Queries}
@@ -45,4 +55,27 @@ After implementing the functions, views, and triggers,
 For the frontend, we used Flask to create a web application that allows users to interact with the election data.
 The frontend provides a user-friendly interface to query the database and visualize the results, 
 such as displaying vote percentages and seat allocations in a more intuitive way. 
+\par In it, we 
 \subsection{Known Limitations}
+\subsection{Short Statement of Individual Contributions}
+\begin{itemize}
+    \item \textbf{Amos Uwamusi:}
+    \begin{itemize}
+        \item Developed the ETL pipeline to extract, transform, and load the election data into the database.
+        \item Implemented functions to calculate vote percentages and allocate seats based on the D'Hondt method.
+        \item Created views to provide complete election results and turnout analysis.
+        \item Developed triggers to automatically calculate percentages and maintain data integrity.
+    \end{itemize}
+    \item \textbf{Kamil Tasarz:}
+    \begin{itemize}
+        \item Designed and implemented the database schema to store the election data efficiently.
+        \item Created functions to analyze party performance and get top parties in specific municipalities.
+        \item Developed views to summarize election results by municipality and identify missing data.
+        \item Implemented triggers for audit logging of important table changes.
+    \end{itemize}
+    \item \textbf{Sérgio Cardoso:}
+    \begin{itemize}
+        \item Adapted the data handling processes to manage multiple elections and municipalities, ensuring scalability and flexibility.
+        \item Developed both the report and the slides for the presentation, summarizing the project and its outcomes effectively.
+    \end{itemize}
+\end{itemize}

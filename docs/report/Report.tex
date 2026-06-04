@@ -5,6 +5,7 @@
 \usepackage{amssymb}
 \usepackage{hyperref}
 \usepackage{geometry}
+\usepackage{underscore}
 \geometry{a4paper, margin=1in}
 
 \title{\textbf{Advanced Topics in Databases: Final Report}}
@@ -18,6 +19,9 @@
 \input{Intro.tex}
 \input{Development.tex}
 \input{Conclusion.tex}
+\clearpage
+\pagenumbering{arabic}% resets `page` counter to 1
+\renewcommand*{\thepage}{A\arabic{page}}
 \appendix 
 \include{Appendix}
 
