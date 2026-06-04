@@ -232,4 +232,4 @@ SELECT status, rows_staged, rows_loaded FROM staging.stg_etl_run_log ORDER BY ru
 
 ---
 
-*Document version: June 2026 · aligns with MVP ETL in `etl/pipeline/` and backlog in [todo.md](../todo.md).*
+*Document version: June 2026 · aligns with MVP ETL in `etl/pipeline/`.*

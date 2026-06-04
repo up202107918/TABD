@@ -2,7 +2,7 @@
 
 Python ETL for **Autárquicas 2021** (MVP): CNE Excel → PostgreSQL staging → operational schema → warehouse star schema → post-load summaries and geometries.
 
-**Status:** MVP complete and rerunnable. Optional improvements are listed in [../todo.md](../todo.md).
+**Status:** MVP complete and rerunnable.
 
 ---
 
@@ -173,4 +173,3 @@ Territorial reconciliation (CNE ↔ CAOP, mapa files, islands): **[../docs/etl_r
 - [data/caop/README.md](data/caop/README.md) — boundary download  
 - [docs/source_inventory_2021.md](docs/source_inventory_2021.md) — which Excel files are used  
 - [../README.md](../README.md) — whole project setup and Flask app  
-- [../todo.md](../todo.md) — backlog  

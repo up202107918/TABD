@@ -1,4 +1,4 @@
-\documentclass[10pt]{report}
+\documentclass[10pt,a4paper]{article}
 \usepackage{graphicx}
 \usepackage{amsmath}
 \usepackage{amsfonts}
@@ -9,9 +9,9 @@
 \geometry{a4paper, margin=1in}
 
 \title{\textbf{Advanced Topics in Databases: Final Report}}
-\author{Amos Uwamusi \texttt{up202502075}
-\and    Kamil Tasarz \texttt{up202512958}
-\and    Sérgio Cardoso \texttt{up202107918}}
+\author{Amos Uwamusi up202502075
+\and    Kamil Tasarz up202512958
+\and    S\'{e}rgio Cardoso up202107918}
 
 \begin{document}
 \maketitle
@@ -19,10 +19,6 @@
 \input{Intro.tex}
 \input{Development.tex}
 \input{Conclusion.tex}
-\clearpage
-\pagenumbering{arabic}% resets `page` counter to 1
-\renewcommand*{\thepage}{A\arabic{page}}
-\appendix 
-\include{Appendix}
+\input{References.tex}
 
 \end{document}
