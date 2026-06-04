@@ -20,7 +20,16 @@
 \maketitle
 
 \begin{frame}{Introduction}
-    Goal: To design and implement a database system to manage and analyze election data, including the development of an ETL pipeline, functions, views, triggers, and a frontend for data interaction.
+    Goal: To design and implement a database system to
+     manage and analyze multiple local elections data (in 
+     this case, the 2017 and 2021 Portuguese local elections), including the 
+     
+     \begin{itemize}
+            \item development of an ETL pipeline to extract, transform, and load the election data into the database;
+            \item implementation of PL/pgSQL functions to perform various analyses on the election data;
+            \item creation of views to provide insights into the election results;
+            \item development of triggers to automate certain calculations and maintain data integrity.
+     \end{itemize}
 \end{frame}
 
 \begin{frame}{Architecture}
@@ -31,18 +40,28 @@
     \end{itemize}
 \end{frame}
 
-\begin{frame}{Database Design}
-    \begin{itemize}
-        \item We designed a database schema to efficiently store the election data, which included tables for elections, municipalities, parties, candidacies, votes, and seat allocations.
-        \item The schema was designed to allow for efficient querying and analysis of the election data, while also ensuring data integrity and consistency.
-    \end{itemize}
+\begin{frame}{Database Design - ER Diagrams (Operational Schema)}
+   \begin{figure}[ht]
+        \centering
+        \includegraphics[width=9.5cm, height=8cm]{../docs/er_diagrams/operational_schema_er.png}
+        \caption{Operational Schema}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{Database Design - ER Diagrams (Warehouse Schema)}
+   \begin{figure}[ht]
+        \centering
+        \includegraphics[width=9.5cm, height=8cm]{../docs/er_diagrams/warehouse_star_schema.png}
+        \caption{Warehouse Schema}
+    \end{figure}
 \end{frame}
 
 \begin{frame}{ETL Pipeline}
     \begin{itemize}
         \item We designed and implemented a robust ETL 
         pipeline to handle the election data, which 
-        involved extracting data from various sources,
+        involved extracting data from various sources (multiple 
+        elections),
         transforming it to fit our database schema, 
         and loading it into the database efficiently.
         \item The ETL pipeline was designed to be scalable and flexible, 
@@ -54,9 +73,9 @@
 
 \begin{frame}{Analytical Queries}
     \begin{itemize}
-        \item We implemented various functions, views, and triggers to perform necessary calculations and maintain data integrity.
-        \item We tested these implementations using SQL queries to ensure they were working correctly and efficiently.
-        \item We analyzed the results to gain insights into the election data, such as identifying which parties had the most votes and how the seats were allocated based on the D'Hondt method.
+        \item We implemented various analytical queries using PL/pgSQL functions to analyze the election data, such as calculating vote percentages, determining party performance, and allocating seats based on the D'Hondt method.
+        \item These functions allow us to perform complex analyses on the election data and provide insights into voter behavior and party performance across different municipalities and elections.
+        \item We also created views to summarize and visualize the election results, making it easier for users to understand the data and draw conclusions from it.
     \end{itemize}
 \end{frame}
 
@@ -65,7 +84,6 @@
         \item We developed a frontend using Flask to create a web application that allows users to interact with the election data.
         \item The frontend provides a user-friendly interface to query the database and visualize the results, such as displaying vote percentages and seat allocations in a more intuitive way.
         \item It also allows users to filter results by election, municipality, and party, making it easier to analyze specific aspects of the election data.
-        \item Overall, the frontend enhances the accessibility and usability of the election data, allowing users to explore and analyze it in a more interactive way.
     \end{itemize}
 \end{frame}
 
@@ -74,7 +92,16 @@
     system to manage and analyze election data, 
     including a robust ETL pipeline, various functions,
      views, triggers, and a user-friendly frontend. 
-     Through this project, we gained valuable insights into the election data and were able to analyze it in various ways, such as identifying which parties had the most votes and how the seats were allocated based on the D'Hondt method. Overall, this project was a great learning experience that allowed us to deepen our understanding of databases and their applications in real-world scenarios.
+\end{frame}
+
+
+\begin{frame}{References}
+    \begin{itemize}
+        \item PostgreSQL Documentation: https://www.postgresql.org/docs/
+        \item Flask Documentation: https://flask.palletsprojects.com/en/2.0.x/
+        \item psycopg2 Documentation: https://www.psycopg.org/docs/
+        \item D'Hondt Method: https://en.wikipedia.org/wiki/D%27Hondt_method
+    \end{itemize}
 \end{frame}
 
 \end{document}
