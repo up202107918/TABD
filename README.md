@@ -7,23 +7,7 @@ Database-centred system for Portuguese local election analysis: PostgreSQL/PostG
 
 > **Recommended setup:** load **Autárquicas 2017 and 2021** (`aut_2017`, then `aut_2021` — order optional). Data is already under `etl/data/`. This unlocks the election selector, cross-year charts on `/analytics`, and the comparison API. See [Setup → ETL](#4-etl-full-load--recommended-2017--2021).
 
----
 
-## Current status (June 2026)
-
-| Area | Status |
-|------|--------|
-| DB schemas (`sql/01`–`05`) | Ready |
-| ETL MVP (Autárquicas **2017 + 2021**, CM, municipality) | **Done** — [etl/README.md](etl/README.md) |
-| Web app (maps, tables, charts, election selector) | **Done** — [app/](app/) |
-| Cross-election compare (2017 vs 2021 on `/analytics`) | **Done** — `/api/charts/election_comparison` |
-| Warehouse facts + operational load | **Done** |
-| Report, slides | **Open** — [todo.md](todo.md) |
-| ETL reconciliation (`docs/etl_reconciliation.md`) | **Done** |
-| Reproducibility guide (`docs/reproducibility.md`) | **Done** |
-| ER diagrams (`docs/er_diagrams/`) | **Done** |
-
-Backlog and optional ETL extensions: **[todo.md](todo.md)**.
 
 ---
 
@@ -34,8 +18,9 @@ TABD/
 ├── sql/                 # Schemas, functions/triggers, analytical queries
 ├── etl/                 # ETL pipeline (run_etl.py, pipeline/)
 ├── app/                 # Flask + templates (psycopg2, Leaflet, Chart.js)
-├── docs/                # Report, ER diagrams (deliverables)
-└── todo.md              # Project backlog
+├── docs/                # Report, ER diagrams, screenshots (deliverables)
+├── slides/              # Oral presentation (LaTeX / PDF)
+└── scripts/             # Maintenance and demo helpers
 ```
 
 ---
@@ -141,7 +126,7 @@ Normalized model: territories, elections, organs, parties/coalitions, candidacie
 
 ### Warehouse (`warehouse`)
 
-Star schema: `dim_*`, `fact_election_result`, `fact_turnout`. Aggregate tables `agg_*` exist in schema but are **not populated** in the MVP load (see [todo.md](todo.md)).
+Star schema: `dim_*`, `fact_election_result`, `fact_turnout`. Aggregate tables `agg_*` exist in schema but are **not populated** in the MVP load.
 
 ### SQL programming
 
@@ -182,7 +167,7 @@ Functions, PL/pgSQL, and triggers in `sql/03_functions_triggers.sql` (e.g. D'Hon
 | [docs/reproducibility.md](docs/reproducibility.md) | End-to-end rebuild guide (§9) |
 | [docs/cross_election_comparison.md](docs/cross_election_comparison.md) | 2017 vs 2021 API and `/analytics` UI |
 | [docs/sql_outputs/README.md](docs/sql_outputs/README.md) | Regenerate analytical demo outputs |
-| [todo.md](todo.md) | Remaining work (ETL extensions, report, etc.) |
+| [slides/README.md](slides/README.md) | Oral presentation |
 
 ---
 
@@ -196,16 +181,18 @@ Functions, PL/pgSQL, and triggers in `sql/03_functions_triggers.sql` (e.g. D'Hon
 - If **seats charts are empty**: load CNE mapa_2 into `seat_result` — `python scripts/load_seats.py --dataset aut_2021` (after operational votes exist).  
 - No authentication; batch ETL only (not live election night).  
 
-Details and future tasks: **[todo.md](todo.md)**.
-
 ---
 
-## Assignment deliverables (checklist)
+## Deliverables
 
-- [x] `docs/report.pdf` (built from `docs/report/Report.tex`)  
-- [x] `docs/er_diagrams/` — operational + warehouse PNG (pgAdmin ERD)  
-- [ ] `slides/`  
-- [x] `docs/etl_reconciliation.md` (CNE ↔ CAOP)  
+| Deliverable | Location |
+|-------------|----------|
+| Report (PDF) | [docs/report.pdf](docs/report.pdf) — sources in [docs/report/](docs/report/) |
+| ER diagrams | [docs/er_diagrams/](docs/er_diagrams/) |
+| ETL reconciliation | [docs/etl_reconciliation.md](docs/etl_reconciliation.md) |
+| Reproducibility guide | [docs/reproducibility.md](docs/reproducibility.md) |
+| Presentation | [slides/](slides/) (work in progress) |
+| Source code | `sql/`, `etl/`, `app/` |
 
 ---
 

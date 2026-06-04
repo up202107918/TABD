@@ -1,10 +1,21 @@
-# Presentation Slides Directory
+# Oral presentation
 
-Place your oral presentation slides here.
+Slides for the project defence (Advanced Topics in Databases, FCUP).
 
-## Recommended Content
+## Files
 
-Your presentation should include (~10-15 slides):
+| File | Description |
+|------|-------------|
+| `Presentation.tex` | LaTeX source |
+| `Presentation.pdf` | Built PDF (submit this if final) |
+
+Build from this directory:
+
+```powershell
+pdflatex Presentation.tex
+```
+
+## Recommended content (~10–15 slides)
 
 1. Title slide with team members
 2. Project overview and objectives
@@ -17,7 +28,4 @@ Your presentation should include (~10-15 slides):
 9. Key findings and insights
 10. Conclusion and Q&A
 
-## File Format
-
-Recommended: PowerPoint (.pptx) or PDF
-File name: `election_analytics_presentation.pptx`
+Screenshots for the deck: [../docs/screenshots/](../docs/screenshots/).

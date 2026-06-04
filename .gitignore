@@ -40,19 +40,25 @@ etl/data/caop/**/*.prj
 # Local setup notes / debug scratch (may contain DB passwords)
 tmp.txt
 tmp_*.txt
+sql_debug*.txt
+todo.md
 
 # Regenerated locally (see docs/sql_outputs/README.md)
 docs/sql_outputs/_apply_log.txt
 docs/sql_outputs/_demo_run.txt
 sql/*.log
 
-# LaTeX build artifacts (sources in docs/report/)
+# LaTeX build artifacts
 docs/report/*.aux
 docs/report/*.log
 docs/report/*.out
 docs/report/*.synctex.gz
 docs/report/*.fdb_latexmk
 docs/report/*.fls
+docs/report/Report.pdf
+
+slides/*.synctex.gz
+slides/*_review*.txt
 
 # IDE
 .vscode/
