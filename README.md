@@ -202,7 +202,7 @@ Details and future tasks: **[todo.md](todo.md)**.
 
 ## Assignment deliverables (checklist)
 
-- [ ] `docs/report.pdf`  
+- [x] `docs/report.pdf` (built from `docs/report/Report.tex`)  
 - [x] `docs/er_diagrams/` — operational + warehouse PNG (pgAdmin ERD)  
 - [ ] `slides/`  
 - [x] `docs/etl_reconciliation.md` (CNE ↔ CAOP)  

@@ -1,8 +1,4 @@
 \section{Introduction}
-Everyday, we are bombarded with 
-a sheer amount of data that has to be stored in 
-databases and efficiently managed to extract meaningful insights.
-The field of database management has evolved significantly over the years,
-with various models and techniques being developed to handle the increasing complexity and volume of data.
-One of the key challenges in database management is ensuring that data is stored in a way that allows for efficient querying and retrieval.
-This is where the concept of database normalization comes into play.
+This report describes our work for the Advanced Topics in Databases course at FCUP: an election analytics platform for Portuguese local (\textit{Aut\'{a}rquicas}) elections. Official results from the Comiss\~{a}o Nacional de Elei\c{c}\~{o}es (CNE) arrive as multi-sheet Excel workbooks; administrative boundaries come from DGT CAOP. Our goal was a database-centred system rather than a spreadsheet workflow: persist the data in PostgreSQL with PostGIS, load it through a rerunnable ETL, implement non-trivial server-side SQL (including D'Hondt seat allocation, window functions, \texttt{ROLLUP}, and \texttt{CUBE}), and expose outcomes through a thin Flask web client that queries the database directly with psycopg2.
+
+The implemented load covers C\^{a}mara Municipal results at municipality level for the 2017 and 2021 election years, with sample validation against CNE figures for Lisboa, Porto, and Barrancos. The following sections document the operational and warehouse schema design, the ETL and cleaning decisions, PL/pgSQL functions and triggers, analytical queries, the web frontend, known limitations, and each member's contribution.

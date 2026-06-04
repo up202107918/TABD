@@ -32,7 +32,7 @@ Required by the assignment or Moodle submission. Without these, the project is i
 | Status | Task | PDF / rubric |
 |--------|------|----------------|
 | `[x]` | `README.md` — setup, ETL, Flask, data download hints | §7 structure, §9 reproducibility |
-| `[ ]` | **`docs/report.pdf`** (5–8 pages) from [docs/REPORT_TEMPLATE.md](docs/REPORT_TEMPLATE.md) | §7.1 |
+| `[x]` | **`docs/report.pdf`** (9 pages with figures; sources in `docs/report/`) | §7.1 |
 | `[ ]` | Report §7.1: problem scope, datasets (CNE + CAOP), limitations, extensions | §7.1 |
 | `[ ]` | Report: operational + warehouse **design rationale**, PK/FK/**indexing strategy** | §5.1, rubric 20% |
 | `[ ]` | Report: ETL pipeline, cleaning, transformations | §5.2, rubric 20% |

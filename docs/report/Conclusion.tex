@@ -1,18 +1,10 @@
 \section{Conclusion}
-In conclusion, this project provided us with an 
-opportunity to apply the concepts and techniques 
-we learned in the Advanced Topics in Databases course 
-to a real-world dataset. We designed and implemented 
-a robust ETL pipeline to handle the election data, 
-created functions, views, and triggers to perform 
-necessary calculations and maintain data integrity, 
-and developed a frontend to allow users to interact 
-with the data in a meaningful way. Through this 
-process, we gained valuable insights into the election 
-data and were able to analyze it in various ways, 
-such as identifying which parties had the most votes 
-and how the seats were allocated based on the 
-D'Hondt method. Overall, this project was a great 
-learning experience that allowed us to deepen our 
-understanding of databases and their applications in 
-real-world scenarios.
+We delivered a \textbf{database-centred} election analytics platform for Portuguese \textit{Autárquicas} (2017 and 2021), aligned with the TABD project goals:
+\begin{itemize}
+    \item \textbf{Data and ETL:} CNE \texttt{mapa\_1}/\texttt{mapa\_2} and DGT CAOP integrated through a rerunnable Python pipeline (staging $\rightarrow$ operational $\rightarrow$ warehouse), with spot validation (Lisboa, Porto, Barrancos) showing no mismatches against official figures.
+    \item \textbf{Database design:} normalized operational schema (\texttt{candidacy} hub, PostGIS territories) and a star-schema warehouse; PL/pgSQL functions, triggers, audit log, and D'Hondt allocation, with vote/turnout percentages refreshed after bulk load.
+    \item \textbf{Advanced SQL:} analytical views using window functions, \texttt{ROLLUP}, and \texttt{CUBE}, documented via \texttt{run\_sql\_demos.py} and \texttt{demo\_results.txt} (e.g.\ Lisboa 2021 lists A/B leading at 35.35\% / 34.38\%).
+    \item \textbf{Web client:} thin Flask application (psycopg2, no ORM) with Leaflet maps, Chart.js municipality charts, and 2017 vs 2021 analytics including Matplotlib exports.
+    \item \textbf{Limitations:} MVP scope is CM at municipality level only; local list codes, continent CAOP fallback, empty \texttt{agg\_*}, and analytical views not wired into the UI remain documented for future work.
+\end{itemize}
+Reproducibility steps for evaluators are in \texttt{docs/reproducibility.md}.
