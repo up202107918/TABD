@@ -44,13 +44,24 @@ Historical datasets in this repo (2013, 2017, 2025) were added manually from CNE
 
 ## Run ETL
 
-```bash
-cd etl
-# Full pipeline (extract + operational + warehouse):
-python run_etl.py --dataset aut_2021 --mode full
+Requires PostgreSQL (`DB_*` env vars — see [../README.md](../README.md)) and schemas `sql/01`, `02`, `03`, `05`.
 
-# Staging only (Excel to staging tables):
-python run_etl.py --dataset aut_2021 --mode staging-only
+**PowerShell** (from repository root, env vars set):
+
+```powershell
+cd etl
+..\.venv\Scripts\python.exe -m pipeline.download_caop
+..\.venv\Scripts\python.exe run_etl.py --dataset aut_2017 --mode full
+..\.venv\Scripts\python.exe run_etl.py --dataset aut_2021 --mode full
 ```
 
-Requires PostgreSQL (`DB_*` env vars or `etl/config.py`) and schemas `sql/01`, `02`, `03`, `05` applied. See [etl/README.md](../README.md).
+**Linux / macOS:**
+
+```bash
+cd etl
+python -m pipeline.download_caop
+python run_etl.py --dataset aut_2017 --mode full
+python run_etl.py --dataset aut_2021 --mode full
+```
+
+Always use `--mode full` for the web app. `staging-only` loads Excel into staging tables only (maps and charts stay empty).

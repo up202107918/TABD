@@ -2,12 +2,12 @@
 
 ## Data prerequisite
 
-Load each year separately (does not remove the other year):
+Load each year separately (does not remove the other year). Set `DB_*` env vars first — see [README.md](../README.md).
 
 ```powershell
 cd etl
-python run_etl.py --dataset aut_2017 --mode full
-python run_etl.py --dataset aut_2021 --mode full
+..\.venv\Scripts\python.exe run_etl.py --dataset aut_2017 --mode full
+..\.venv\Scripts\python.exe run_etl.py --dataset aut_2021 --mode full
 ```
 
 Config: `etl/config.py` (`aut_2017`, `aut_2021`). Extractor supports 2017 header row (cod/conc on row 2) via `find_wide_mapa_header_row()` in `etl/pipeline/extract.py`.

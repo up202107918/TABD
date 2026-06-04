@@ -3,7 +3,9 @@
 End-to-end procedure to rebuild the **Election Analytics Platform** from an empty PostgreSQL database.  
 Use this section in the technical report and for oral demo preparation.
 
-**Estimated time:** 15–25 minutes (excluding CNE data download).
+**Canonical setup:** [README.md](../README.md) (steps 1–5). This document adds verification, demo SQL, and a report checklist.
+
+**Estimated time:** 20–30 minutes (CNE data is already under `etl/data/` in the repo).
 
 ---
 
@@ -13,21 +15,38 @@ Use this section in the technical report and for oral demo preparation.
 |-------------|-----------------|
 | PostgreSQL | 14+ |
 | PostGIS | `CREATE EXTENSION postgis` on the target database |
-| Python | 3.9+ |
-| `psql` | On `PATH` (for schema load and smoke SQL) |
-| CNE data | Folder `etl/data/2021al_mapa_oficial/` (Excel mapas). Not in Git if large — see [README.md](../README.md) and [etl/data/README.md](../etl/data/README.md) |
-| Git clone | Repository root = `TABD/` |
+| Python | **3.11 or 3.12** (64-bit, [python.org](https://www.python.org/downloads/)) — **not** MSYS2 / Git-Bash Python |
+| `psql`, `createdb` | On `PATH` |
+| CNE data | `etl/data/al2017_mapaoficial_retif02_01out2018/`, `etl/data/2021al_mapa_oficial/` (in Git) |
+| Working directory | Repository root `TABD/` |
+
+Check interpreters (Windows):
 
 ```powershell
-python -m venv .venv
-.\.venv\Scripts\pip install -r requirements.txt
+py -0p
 ```
 
 ---
 
-## 2. Environment variables
+## 2. Python environment
 
-Set once per shell session (or edit `etl/config.py`):
+From repository root:
+
+```powershell
+py -3.12 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install --upgrade pip
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+```
+
+Verify: `.\.venv\Scripts\python.exe --version` → 3.11.x or 3.12.x, and `Test-Path .\.venv\Scripts\python.exe` → `True`.
+
+If `.venv\bin\` exists instead of `.venv\Scripts\`, delete `.venv` and recreate with `py -3.12`.
+
+---
+
+## 3. Environment variables
+
+Set **once per PowerShell session** (same window for ETL and the app), or edit `etl/config.py`:
 
 ```powershell
 $env:DB_HOST="localhost"
@@ -38,11 +57,11 @@ $env:DB_PASSWORD="your_password"
 $env:PGCLIENTENCODING="UTF8"
 ```
 
-The Flask app and ETL both read `DB_CONFIG` from `etl/config.py`.
+Flask and ETL both read `DB_CONFIG` from `etl/config.py`.
 
 ---
 
-## 3. Database creation
+## 4. Database creation
 
 ```powershell
 createdb -U postgres -h localhost election_analytics
@@ -51,7 +70,7 @@ psql -U postgres -h localhost -d election_analytics -c "CREATE EXTENSION IF NOT 
 
 ---
 
-## 4. Schema load (order matters)
+## 5. Schema load (order matters)
 
 From repository root:
 
@@ -71,66 +90,78 @@ psql -U postgres -h localhost -d election_analytics -v ON_ERROR_STOP=1 -f sql/05
 
 **Not loaded in this step:**
 
-- `sql/04_analytical_queries.sql` — analytical views/functions (run after ETL, step 6).
+- `sql/04_analytical_queries.sql` — analytical views/functions (step 8).
 - `sql/06_sample_data.sql` — ad-hoc validation only, **not** seed data.
-- `sql/07_demo_queries.sql` — report/oral demo queries (step 6).
-- `sql/08_smoke_checks.sql` — post-load verification (step 5).
+- `sql/07_demo_queries.sql` — report/oral demo queries (step 8).
+- `sql/08_smoke_checks.sql` — optional SQL smoke checks (step 7).
 
 ---
 
-## 5. ETL full load (2021, CM, municipality)
+## 6. ETL full load — **required**
+
+> Without `--mode full` the app starts but is empty (no map polygons, charts, or turnout).
+
+**Keep `$env:DB_PASSWORD` set** from step 3.
 
 ```powershell
 cd etl
-
-# Boundaries (GeoJSON fallback or official CAOP ZIP if available)
 ..\.venv\Scripts\python.exe -m pipeline.download_caop
 
-# Full pipeline: extract → operational → geo → seat_result → warehouse → summaries
+# Recommended: both years (~15–30 s each; wait for "Pipeline finished")
+..\.venv\Scripts\python.exe run_etl.py --dataset aut_2017 --mode full
 ..\.venv\Scripts\python.exe run_etl.py --dataset aut_2021 --mode full
 ```
+
+Each run must end with `Pipeline finished: dataset=aut_… mode=full`. If it stops after `Territories loaded`, check `staging.stg_etl_run_log` for `failed` or re-run.
 
 **Phases inside `--mode full`:**
 
 1. Truncate staging; load CNE Excel (`mapa_1`) → `staging.stg_*`
 2. Transform → `operational.*` (votes, turnout, territories)
 3. CAOP geometries → `district.geometry`, `municipality.geometry`
-4. CNE `mapa_2` mandate columns → `operational.seat_result`
+4. CNE `mapa_2` → `operational.seat_result`
 5. Load `warehouse.fact_election_result`, `fact_turnout`
 6. Refresh `party_municipality_summary`
 
 Run log: `staging.stg_etl_run_log` (`status = completed`).
 
-### Optional: second election year (analytics compare)
+Optional — seat reload only (if charts empty after a successful full load):
 
 ```powershell
-..\.venv\Scripts\python.exe run_etl.py --dataset aut_2017 --mode full
+..\.venv\Scripts\python.exe ..\scripts\load_seats.py --dataset aut_2017
+..\.venv\Scripts\python.exe ..\scripts\load_seats.py --dataset aut_2021
 ```
 
-Enables cross-year charts on `/analytics` when both years exist.
+If turnout shows **0%** everywhere after load:
+
+```powershell
+cd ..
+.\.venv\Scripts\python.exe scripts\fix_turnout_percentages.py
+```
 
 ---
 
-## 6. Verification (smoke checks)
+## 7. Verification (smoke checks)
 
-**Option A — SQL file:**
+From repository root (`cd ..` if still in `etl/`):
 
-```powershell
-cd ..   # repo root
-psql -U postgres -h localhost -d election_analytics -f sql/08_smoke_checks.sql
-```
-
-**Option B — Python script (exit code 0 = pass):**
+**Option A — Python (recommended, exit code 0 = pass):**
 
 ```powershell
 .\.venv\Scripts\python.exe scripts\smoke_check.py
 ```
 
-### Expected order of magnitude (aut_2021 full load)
+**Option B — SQL file:**
+
+```powershell
+psql -U postgres -h localhost -d election_analytics -f sql/08_smoke_checks.sql
+```
+
+### Expected order of magnitude (after **both** 2017 + 2021 loads)
 
 | Check | Approximate count |
 |-------|-------------------|
-| `staging.stg_election_results` | ≥ 1 000 |
+| `staging.stg_election_results` | ≥ 1 000 (last run’s staging) |
 | `staging.stg_turnout_data` | ≥ 250 |
 | `operational.municipality` | ≥ 250 |
 | Districts with geometry | ~18 (continent fallback) |
@@ -140,26 +171,31 @@ psql -U postgres -h localhost -d election_analytics -f sql/08_smoke_checks.sql
 | `warehouse.fact_election_result` | ≥ 1 000 |
 | `warehouse.fact_turnout` | ≥ 250 |
 
-**Sample sanity (Lisboa 2021, CM):** parties **A** and **B** with **7** seats each, **CDU** 2, **BE** 1 (17-seat council; CNE `mapa_2`, `allocation_method = CNE mapa_2`).
+**Sample sanity (Lisboa 2021, CM):** parties **A** and **B** with **7** seats each, **CDU** 2, **BE** 1.
 
 Validation document: [etl/docs/validation_samples_2021.md](../etl/docs/validation_samples_2021.md).
 
 ---
 
-## 7. Analytical SQL + demo outputs (report)
+## 8. Analytical SQL + demo outputs (report)
 
 ```powershell
+$env:DB_PASSWORD="your_password"   # if new shell
 .\.venv\Scripts\python.exe scripts\run_sql_demos.py
 ```
 
 Produces:
 
-- `docs/sql_outputs/demo_results.txt` — `sql/03` + `sql/04` sample output
-- `docs/sql_outputs/_apply_log.txt` — view/function apply log
+- `docs/sql_outputs/demo_results.txt` — `sql/07_demo_queries.sql` output
+- `docs/sql_outputs/_apply_log.txt` — `sql/04` apply log
+
+See [docs/sql_outputs/README.md](sql_outputs/README.md).
 
 ---
 
-## 8. Web application
+## 9. Web application
+
+**Same PowerShell session as ETL** (`$env:DB_PASSWORD` still set):
 
 ```powershell
 cd app
@@ -179,18 +215,18 @@ Writes `docs/screenshots/matplotlib_analytics_*.png`.
 
 ---
 
-## 9. Data not in repository
+## 10. Data not in repository
 
 | Item | How to obtain |
 |------|----------------|
-| CNE Autárquicas 2021 ZIP | [cne.pt — 2021 mapa oficial](https://www.cne.pt/sites/default/files/dl/2021al_mapa_oficial.zip) → unpack to `etl/data/2021al_mapa_oficial/` |
-| CAOP boundaries (optional full islands) | [DGT CAOP](https://www.dgterritorio.gov.pt/atividades/cartografia/cartografia-tematica/caop) or `python -m pipeline.download_caop` (continent fallback) |
+| CNE Autárquicas 2021 ZIP | [cne.pt — 2021 mapa oficial](https://www.cne.pt/sites/default/files/dl/2021al_mapa_oficial.zip) → `etl/data/2021al_mapa_oficial/` |
+| CAOP boundaries (full islands) | [DGT CAOP](https://www.dgterritorio.gov.pt/atividades/cartografia/cartografia-tematica/caop) or `python -m pipeline.download_caop` (continent fallback) |
 
 Territorial reconciliation: [etl_reconciliation.md](etl_reconciliation.md).
 
 ---
 
-## 10. Known limitations (state honestly in report)
+## 11. Known limitations (state honestly in report)
 
 - MVP organ: **CM** only; municipality level (no parishes in ETL).
 - ~50 CNE municipalities may appear in `mapa_2` but not in `mapa_1` extract (no votes in DB).
@@ -199,16 +235,18 @@ Territorial reconciliation: [etl_reconciliation.md](etl_reconciliation.md).
 
 ---
 
-## 11. One-page checklist (copy for report §9)
+## 12. One-page checklist (copy for report §9)
 
 ```
-[ ] venv + pip install -r requirements.txt
-[ ] createdb election_analytics + PostGIS
+[ ] py -3.12 -m venv .venv + pip install -r requirements.txt
+[ ] DB_* env vars set (same PowerShell session)
+[ ] createdb -U postgres -h localhost election_analytics + PostGIS
 [ ] sql/01 → 02 → 03 → 05
-[ ] etl: download_caop + run_etl.py --dataset aut_2021 --mode full
-[ ] smoke: scripts/smoke_check.py OR sql/08_smoke_checks.sql
+[ ] etl: download_caop + run_etl.py --dataset aut_2017 --mode full
+[ ] etl: run_etl.py --dataset aut_2021 --mode full
+[ ] smoke: scripts/smoke_check.py (exit 0)
 [ ] demos: scripts/run_sql_demos.py
-[ ] app: python app/app.py → http://localhost:8000
+[ ] app: cd app && ..\.venv\Scripts\python.exe app.py → http://localhost:8000
 ```
 
 ---

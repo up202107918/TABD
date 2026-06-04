@@ -12,7 +12,7 @@ Used in the report (`docs/report/`) and oral presentation (`slides/`).
 | `matplotlib_analytics_votes.png` | Matplotlib chart — votes (`scripts/export_charts.py` or `/analytics/chart.png`) |
 | `matplotlib_analytics_seats.png` | Matplotlib chart — seats |
 
-Regenerate Matplotlib exports:
+Regenerate Matplotlib exports (after ETL full load, `DB_*` set — see [README.md](../../README.md)):
 
 ```powershell
 .\.venv\Scripts\python.exe scripts\export_charts.py

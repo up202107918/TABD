@@ -90,7 +90,7 @@ Required before ETL and the Flask app. `app/app.py` imports `DB_CONFIG` from `et
 
 Load **both** election years so the navbar election selector and **/analytics** cross-year comparison work out of the box. Each `run_etl.py` run only replaces data for that `election_id`; order does not matter. Source folders are already in the repo under `etl/data/` (`al2017_mapaoficial_retif02_01out2018`, `2021al_mapa_oficial`).
 
-**Use the same PowerShell window as step 3** (`$env:DB_PASSWORD` must still be set).
+**Use the same PowerShell window as in previous step** (`$env:DB_PASSWORD` must still be set).
 
 See **[etl/README.md](etl/README.md)** for modes, sanity SQL, and troubleshooting.
 
@@ -105,15 +105,10 @@ cd etl
 
 ### 5. Web application
 
-**Set step 3 env vars in this same PowerShell window** (especially `$env:DB_PASSWORD`). A new terminal does not inherit them — `fe_sendauth: no password supplied` means `DB_PASSWORD` is empty.
-
-From repository root (after ETL, if you are still in `etl/` run `cd ..` first):
+**Use the same PowerShell window as in previous step** (`$env:DB_PASSWORD` must still be set).
 
 ```powershell
-# Quick check before starting Flask
-$env:DB_PASSWORD   # must not be empty
-
-cd app
+cd ..\app
 ..\.venv\Scripts\python.exe app.py
 ```
 

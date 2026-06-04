@@ -182,13 +182,15 @@ Territory names must stay consistent across years for the same concelho; reconci
 
 ## 10. Verification checklist (reproducible)
 
-From repository root (PostgreSQL schemas applied, `DB_*` set):
+From repository root (PostgreSQL schemas applied, `DB_*` set — see [README.md](../README.md)):
 
 ```powershell
 cd etl
 ..\.venv\Scripts\python.exe -m pipeline.download_caop
+..\.venv\Scripts\python.exe run_etl.py --dataset aut_2017 --mode full
 ..\.venv\Scripts\python.exe run_etl.py --dataset aut_2021 --mode full
 cd ..
+..\.venv\Scripts\python.exe scripts\smoke_check.py
 ..\.venv\Scripts\python.exe scripts\validate_samples_2021.py
 ```
 

@@ -4,10 +4,13 @@ Boundary files for the map in the Flask app. The ETL loads them into `operationa
 
 ## Quick start (automatic)
 
-```bash
+From repository root, with `DB_*` env vars set (see [../../README.md](../../README.md)):
+
+```powershell
 cd etl
-python -m pipeline.download_caop
-python run_etl.py --dataset aut_2021 --mode full
+..\.venv\Scripts\python.exe -m pipeline.download_caop
+..\.venv\Scripts\python.exe run_etl.py --dataset aut_2021 --mode full
+..\.venv\Scripts\python.exe run_etl.py --dataset aut_2017 --mode full
 ```
 
 If the official DGT ZIP URL returns **404**, the script downloads **GeoJSON fallback** files from [nmota/caop_GeoJSON](https://github.com/nmota/caop_GeoJSON) (data originally from DGT WFS). Mention this in your report and prefer official shapefiles if you obtain them manually.
@@ -25,7 +28,7 @@ Expected files after download:
 
 ## Re-run only geometries
 
-After placing files here, run the full pipeline (or operational reload). The geo step runs automatically when boundary files exist.
+After placing files here, run the full pipeline (`--mode full`). The geo step runs automatically when boundary files exist.
 
 ## Note on election year
 

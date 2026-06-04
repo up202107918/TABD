@@ -1,37 +1,50 @@
 # ETL pipeline
 
-Python ETL for **Autárquicas 2021** (MVP): CNE Excel → PostgreSQL staging → operational schema → warehouse star schema → post-load summaries and geometries.
+Python ETL for **Autárquicas 2017 and 2021** (MVP): CNE Excel → PostgreSQL staging → operational schema → warehouse star schema → post-load summaries and geometries.
 
 **Status:** MVP complete and rerunnable.
+
+**Project setup (DB, venv, env vars, Flask):** [../README.md](../README.md).
 
 ---
 
 ## Quick start (full load)
 
-From the repository root, with PostgreSQL and schemas already applied (`sql/01`–`05`):
+From the repository root, with PostgreSQL schemas applied (`sql/01`–`05`) and **`DB_*` env vars set in the same shell**:
 
 **PowerShell:**
 
 ```powershell
+$env:DB_HOST="localhost"
+$env:DB_PORT="5432"
 $env:DB_NAME="election_analytics"
 $env:DB_USER="postgres"
 $env:DB_PASSWORD="your_password"
+$env:PGCLIENTENCODING="UTF8"
 
-# 1) Boundaries (optional but needed for maps)
 cd etl
 ..\.venv\Scripts\python.exe -m pipeline.download_caop
 
-# 2) Full pipeline
+# Required for maps, charts, turnout — wait for "Pipeline finished" each time
+..\.venv\Scripts\python.exe run_etl.py --dataset aut_2017 --mode full
 ..\.venv\Scripts\python.exe run_etl.py --dataset aut_2021 --mode full
+
+cd ..
+.\.venv\Scripts\python.exe scripts\smoke_check.py
 ```
 
 **Linux / macOS:**
 
 ```bash
-export DB_NAME=election_analytics DB_USER=postgres DB_PASSWORD=your_password
+export DB_HOST=localhost DB_PORT=5432 DB_NAME=election_analytics
+export DB_USER=postgres DB_PASSWORD=your_password PGCLIENTENCODING=UTF8
 cd etl
+python3.12 -m venv ../.venv && source ../.venv/bin/activate
+pip install -r ../requirements.txt
 python -m pipeline.download_caop
+python run_etl.py --dataset aut_2017 --mode full
 python run_etl.py --dataset aut_2021 --mode full
+cd .. && python scripts/smoke_check.py
 ```
 
 ---
@@ -40,14 +53,15 @@ python run_etl.py --dataset aut_2021 --mode full
 
 | Command | Effect |
 |---------|--------|
-| `python run_etl.py --dataset aut_2021 --mode full` | Extract → operational → geo → warehouse facts → post-load |
-| `python run_etl.py --dataset aut_2021 --mode staging-only` | Excel → `staging.stg_*` only |
+| `python run_etl.py --dataset aut_2021 --mode full` | Extract → operational → geo → seats → warehouse → post-load |
+| `python run_etl.py --dataset aut_2017 --mode full` | Same for 2017 (does not remove 2021 operational rows) |
+| `python run_etl.py --dataset aut_2021 --mode staging-only` | Excel → `staging.stg_*` only (**app stays empty**) |
 | `python run_etl.py --dataset aut_2021 --mode reload-operational` | Staging + operational + geo + post-load (no warehouse truncate/reload) |
 | `python -m pipeline.download_caop` | Download CAOP GeoJSON fallback (or official ZIP if URL works) |
 
-Default `--mode` is `staging-only`; for a complete load always pass `--mode full`.
+Default `--mode` is `staging-only`; for a complete load **always** pass `--mode full`.
 
-Configuration: `config.py` (`DATASETS`, `DB_*` env vars). Loaded datasets: `aut_2017`, `aut_2021`; other year folders under `data/` need an entry in `DATASETS` before use.
+Configuration: `config.py` (`DATASETS`, `DB_*` env vars). Loaded datasets: `aut_2017`, `aut_2021`.
 
 ---
 
@@ -58,12 +72,12 @@ Excel (mapa_1, mapa_anexo)
     → pipeline/extract.py          → staging.stg_election_results, stg_turnout_data
     → pipeline/transform_operational.py → operational.* (CM, concelho)
     → pipeline/transform_geo.py    → district/municipality geometries (CAOP)
-    → pipeline/load_warehouse.py   → warehouse dimensions + fact_* 
     → pipeline/load_seats.py       → operational.seat_result (CNE mapa_2)
+    → pipeline/load_warehouse.py   → warehouse dimensions + fact_*
     → pipeline/post_load.py        → party_municipality_summary
 ```
 
-Run metadata: `staging.stg_etl_run_log`.
+Run metadata: `staging.stg_etl_run_log` (`status` must be `completed`).
 
 **Bulk load note:** operational load sets `session_replication_role = replica` to skip audit triggers during insert; triggers apply on normal app writes.
 
@@ -73,23 +87,16 @@ Run metadata: `staging.stg_etl_run_log`.
 
 | Area | Source | Target |
 |------|--------|--------|
-| Results & lists | `mapa_1_resultados` (wide Excel unpivot) | `candidacy`, `vote_result`, parties/coalitions |
+| Results & lists | `mapa_1` (wide Excel unpivot) | `candidacy`, `vote_result`, parties/coalitions |
 | Turnout | `mapa_1` (wide sheet, CM rows) | `turnout` (organ CM) |
 | Rankings / winner | Derived in transform | `vote_result.ranking_position`, `is_winner` |
 | Territory dictionary | CNE names in staging | `district`, `municipality` |
 | Geometry | `data/caop/*.geojson` or `.shp` | `district.geometry`, `municipality.geometry` |
 | Warehouse | Operational join | `dim_*`, `fact_election_result`, `fact_turnout` |
 
-**Validation (post-load):** `python scripts/validate_samples_2021.py` → [docs/validation_samples_2021.md](docs/validation_samples_2021.md) (mapa_1 vs DB; mapa_2 vote %; D'Hondt ex10 pattern).
+**Validation (post-load):** `python scripts/validate_samples_2021.py` → [docs/validation_samples_2021.md](docs/validation_samples_2021.md).
 
-**Multi-election:** `aut_2017` and `aut_2021` in [config.py](config.py). Load 2017 after 2021 (or vice versa); each run only replaces rows for that `election_id`:
-
-```bash
-python run_etl.py --dataset aut_2017 --mode full
-python run_etl.py --dataset aut_2021 --mode full
-```
-
-**Seats:** `mapa_2` `M` columns → `operational.seat_result` (see [../docs/etl_reconciliation.md](../docs/etl_reconciliation.md)).
+**Multi-election:** load both years for `/analytics` cross-year compare — see [../docs/cross_election_comparison.md](../docs/cross_election_comparison.md).
 
 **Skipped in MVP (by design):**
 
@@ -110,6 +117,7 @@ etl/
 │   ├── transform_operational.py
 │   ├── transform_geo.py
 │   ├── load_warehouse.py
+│   ├── load_seats.py
 │   ├── post_load.py
 │   └── download_caop.py
 ├── data/                  # CNE workbooks — see data/README.md
@@ -124,12 +132,14 @@ Logs: `etl/data/logs/etl_pipeline.log` (local, not in Git).
 
 ## Sanity checks (after `full`)
 
+**Automated:** from repo root, `.\.venv\Scripts\python.exe scripts\smoke_check.py` (exit 0 = pass).
+
+**Manual SQL:**
+
 ```sql
--- Staging
 SELECT COUNT(*) FROM staging.stg_election_results;
 SELECT COUNT(*) FROM staging.stg_turnout_data;
 
--- Operational (2021, CM)
 SELECT COUNT(*) FROM operational.turnout t
 JOIN operational.election e ON e.election_id = t.election_id
 WHERE e.election_year = 2021;
@@ -139,20 +149,26 @@ JOIN operational.candidacy c ON c.candidacy_id = vr.candidacy_id
 JOIN operational.election e ON e.election_id = c.election_id
 WHERE e.election_year = 2021;
 
--- Geo
 SELECT COUNT(*) FROM operational.district WHERE geometry IS NOT NULL;
 SELECT COUNT(*) FROM operational.municipality WHERE geometry IS NOT NULL;
 
--- Warehouse
-SELECT COUNT(*) FROM warehouse.fact_election_result;
-SELECT COUNT(*) FROM warehouse.fact_turnout;
-
--- Last run
 SELECT run_id, run_name, status, rows_staged, rows_loaded, end_time
 FROM staging.stg_etl_run_log ORDER BY run_id DESC LIMIT 3;
 ```
 
-Expected order of magnitude (approximate): ~1500+ staging results rows, ~300 turnout municipalities, ~18 districts / ~280+ municipalities with geometry (fallback GeoJSON), ~1500 fact result rows.
+Expected: ~1500+ staging results, ~300 turnout municipalities, ~18 districts / ~280+ municipalities with geometry, last run `status = completed`.
+
+---
+
+## Troubleshooting
+
+| Symptom | Likely cause | Fix |
+|---------|--------------|-----|
+| App empty, staging OK | ETL interrupted or `--mode staging-only` | Re-run `--mode full`; wait for `Pipeline finished` |
+| `last_etl_run: running` | Previous run crashed | Re-run full load; check terminal for traceback |
+| No map polygons | CAOP missing or geo step skipped | `python -m pipeline.download_caop` then full ETL |
+| Turnout 0% | Bulk load / no operational turnout | `scripts/fix_turnout_percentages.py` or re-run full ETL |
+| `fe_sendauth: no password` | `DB_PASSWORD` not set in shell | Set `$env:DB_*` before ETL and Flask |
 
 ---
 
@@ -160,10 +176,10 @@ Expected order of magnitude (approximate): ~1500+ staging results rows, ~300 tur
 
 | Data | Provider | In repo / download |
 |------|----------|-------------------|
-| Autárquicas 2021 results | [CNE](https://www.cne.pt/content/eleicoes-autarquicas-2021) | `data/2021al_mapa_oficial/` |
+| Autárquicas 2017 / 2021 | [CNE](https://www.cne.pt/) | `data/al2017_*`, `data/2021al_mapa_oficial/` |
 | Administrative boundaries | [DGT CAOP](https://www.dgterritorio.gov.pt/atividades/cartografia/cartografia-tematica/caop) | `python -m pipeline.download_caop` → `data/caop/` |
 
-Territorial reconciliation (CNE ↔ CAOP, mapa files, islands): **[../docs/etl_reconciliation.md](../docs/etl_reconciliation.md)**.
+Territorial reconciliation: **[../docs/etl_reconciliation.md](../docs/etl_reconciliation.md)**.
 
 ---
 
@@ -173,3 +189,4 @@ Territorial reconciliation (CNE ↔ CAOP, mapa files, islands): **[../docs/etl_r
 - [data/caop/README.md](data/caop/README.md) — boundary download  
 - [docs/source_inventory_2021.md](docs/source_inventory_2021.md) — which Excel files are used  
 - [../README.md](../README.md) — whole project setup and Flask app  
+- [../docs/reproducibility.md](../docs/reproducibility.md) — report §9 rebuild checklist  
