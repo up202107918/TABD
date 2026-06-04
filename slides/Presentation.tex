@@ -20,13 +20,22 @@
 \maketitle
 
 \begin{frame}{Introduction}
-
+    Goal: To design and implement a database system to manage and analyze election data, including the development of an ETL pipeline, functions, views, triggers, and a frontend for data interaction.
 \end{frame}
 
 \begin{frame}{Architecture}
+    \begin{itemize}
+        \item The architecture of our system consists of three main components: the database, the ETL pipeline, and the frontend.
+        \item The database is designed to efficiently store and manage the election data, while the ETL pipeline is responsible for extracting, transforming, and loading the data into the database.
+        \item The frontend provides a user-friendly interface for users to interact with the data and visualize the results.
+    \end{itemize}
 \end{frame}
 
 \begin{frame}{Database Design}
+    \begin{itemize}
+        \item We designed a database schema to efficiently store the election data, which included tables for elections, municipalities, parties, candidacies, votes, and seat allocations.
+        \item The schema was designed to allow for efficient querying and analysis of the election data, while also ensuring data integrity and consistency.
+    \end{itemize}
 \end{frame}
 
 \begin{frame}{ETL Pipeline}
@@ -44,12 +53,28 @@
 \end{frame}
 
 \begin{frame}{Analytical Queries}
+    \begin{itemize}
+        \item We implemented various functions, views, and triggers to perform necessary calculations and maintain data integrity.
+        \item We tested these implementations using SQL queries to ensure they were working correctly and efficiently.
+        \item We analyzed the results to gain insights into the election data, such as identifying which parties had the most votes and how the seats were allocated based on the D'Hondt method.
+    \end{itemize}
 \end{frame}
 
 \begin{frame}{Frontend Overview}
+    \begin{itemize}
+        \item We developed a frontend using Flask to create a web application that allows users to interact with the election data.
+        \item The frontend provides a user-friendly interface to query the database and visualize the results, such as displaying vote percentages and seat allocations in a more intuitive way.
+        \item It also allows users to filter results by election, municipality, and party, making it easier to analyze specific aspects of the election data.
+        \item Overall, the frontend enhances the accessibility and usability of the election data, allowing users to explore and analyze it in a more interactive way.
+    \end{itemize}
 \end{frame}
 
 \begin{frame}{Conclusion}
+    We managed to design and implement a comprehensive database 
+    system to manage and analyze election data, 
+    including a robust ETL pipeline, various functions,
+     views, triggers, and a user-friendly frontend. 
+     Through this project, we gained valuable insights into the election data and were able to analyze it in various ways, such as identifying which parties had the most votes and how the seats were allocated based on the D'Hondt method. Overall, this project was a great learning experience that allowed us to deepen our understanding of databases and their applications in real-world scenarios.
 \end{frame}
 
 \end{document}
