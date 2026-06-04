@@ -5,6 +5,8 @@ Database-centred system for Portuguese local election analysis: PostgreSQL/PostG
 
 **Team:** Amos Ehiomone Uwamusi, Sérgio Teixeira Cardoso, Kamil Tasarz
 
+> **Recommended setup:** load **Autárquicas 2017 and 2021** (`aut_2017`, then `aut_2021` — order optional). Data is already under `etl/data/`. This unlocks the election selector, cross-year charts on `/analytics`, and the comparison API. See [Setup → ETL](#4-etl-full-load--recommended-2017--2021).
+
 ---
 
 ## Current status (June 2026)
@@ -12,7 +14,7 @@ Database-centred system for Portuguese local election analysis: PostgreSQL/PostG
 | Area | Status |
 |------|--------|
 | DB schemas (`sql/01`–`05`) | Ready |
-| ETL MVP (Autárquicas 2021, CM, municipality) | **Done** — [etl/README.md](etl/README.md) |
+| ETL MVP (Autárquicas **2017 + 2021**, CM, municipality) | **Done** — [etl/README.md](etl/README.md) |
 | Web app (maps, tables, charts, election selector) | **Done** — [app/](app/) |
 | Cross-election compare (2017 vs 2021 on `/analytics`) | **Done** — `/api/charts/election_comparison` |
 | Warehouse facts + operational load | **Done** |
@@ -88,15 +90,29 @@ $env:DB_PASSWORD="your_password"
 
 `app/app.py` imports `DB_CONFIG` from `etl/config.py`.
 
-### 4. ETL (full load)
+### 4. ETL (full load) — **recommended: 2017 + 2021**
 
-See **[etl/README.md](etl/README.md)** for details.
+Load **both** election years so the navbar election selector and **/analytics** cross-year comparison work out of the box. Each `run_etl.py` run only replaces data for that `election_id`; order does not matter. Source folders are already in the repo under `etl/data/` (`al2017_mapaoficial_retif02_01out2018`, `2021al_mapa_oficial`).
+
+See **[etl/README.md](etl/README.md)** for modes, sanity SQL, and troubleshooting.
 
 ```powershell
 cd etl
 ..\.venv\Scripts\python.exe -m pipeline.download_caop
+
+# Recommended: both Autárquicas years (CM, municipality)
+..\.venv\Scripts\python.exe run_etl.py --dataset aut_2017 --mode full
 ..\.venv\Scripts\python.exe run_etl.py --dataset aut_2021 --mode full
 ```
+
+Optional — seat mandates from CNE mapa_2 (needed for seats charts if empty after load):
+
+```powershell
+..\.venv\Scripts\python.exe ..\scripts\load_seats.py --dataset aut_2017
+..\.venv\Scripts\python.exe ..\scripts\load_seats.py --dataset aut_2021
+```
+
+Single-year only (e.g. quick smoke test): `run_etl.py --dataset aut_2021 --mode full` is enough for maps and one-year charts, but **without 2017 you cannot use cross-election compare**.
 
 ### 5. Web application
 
@@ -109,7 +125,7 @@ Open **http://localhost:8000** (default port from `PORT` env or 8000).
 
 Use the navbar to select **election** and **municipality**; URLs carry `?election_id=...`.
 
-**Two election years (e.g. 2017 + 2021):** load both via ETL ([etl/README.md](etl/README.md)), then open **/analytics** for the cross-year comparison chart, or call `GET /api/charts/election_comparison?election_id_a=…&election_id_b=…`.
+After the **recommended 2017 + 2021** load (step 4), open **/analytics** for the side-by-side comparison chart, or `GET /api/charts/election_comparison?election_id_a=…&election_id_b=…` — details in [docs/cross_election_comparison.md](docs/cross_election_comparison.md).
 
 ---
 
@@ -147,7 +163,8 @@ Functions, PL/pgSQL, and triggers in `sql/03_functions_triggers.sql` (e.g. D'Hon
 
 | Source | Use |
 |--------|-----|
-| [CNE Autárquicas 2021](https://www.cne.pt/sites/default/files/dl/2021al_mapa_oficial.zip) | Election results (in `etl/data/2021al_mapa_oficial/`) |
+| CNE Autárquicas **2017** (mapa oficial, retificado) | `etl/data/al2017_mapaoficial_retif02_01out2018/` — **`aut_2017`** (recommended with 2021) |
+| [CNE Autárquicas 2021](https://www.cne.pt/sites/default/files/dl/2021al_mapa_oficial.zip) | `etl/data/2021al_mapa_oficial/` — **`aut_2021`** |
 | [DGT CAOP](https://www.dgterritorio.gov.pt/atividades/cartografia/cartografia-tematica/caop) | Boundaries (`etl/data/caop/`, auto-download helper) |
 
 ---
